@@ -8,13 +8,10 @@ const AuthController = {
         const { email, password } = req.body;
 
         try {
-            const user = await Users.findOne({ email: email });
+            const user = await Users.findOne({ email: email.toLowerCase() });
 
             if (!user) {
                 return res.status(400).send("User não encontrado");
-            }
-            if (user.ativo === 0) {
-                return res.status(400).send("Conta não verificada. Verifique seu e-mail.");
             }
 
             if (user && (await bcrypt.compare(password, user.password))) {
