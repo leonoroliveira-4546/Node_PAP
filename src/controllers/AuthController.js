@@ -40,7 +40,18 @@ const AuthController = {
     },
 
     register: async (req, res) => {
-        const { username, email, password } = req.body;
+        const { username, email, password, type,  birthDate, dojoId, responsavelId} = req.body;
+
+        function calculateAge(birthDate) {
+            const today = new Date();
+            const birth = new Date(birthDate);
+            let age = today.getFullYear() - birth.getFullYear();
+            const month = today.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+                age--;
+            }
+            return age;
+        }
 
         try {
             const existingUserByEmail = await Users.findOne({ email });
@@ -48,37 +59,27 @@ const AuthController = {
                 return res.status(400).json({ message: "Já existe um usuário com esse email." });
             }
 
-            const existingUserByUsername = await Users.findOne({ username });
-            if (existingUserByUsername) {
-                return res.status(400).json({ message: "Já existe um usuário com esse username." });
-            }
+            if (type === 'athlete') {
+                if (!birthDate) {
+                    return res.status(400).json({ message: 'Por favor, preenche a data de nascimento.'})
+                }
 
-            const plano = await Planos.findOne({ title: "Free" });
-            if (!plano) {
-                return res.status(400).json({ message: "Não há plano que exista" });
+                const age = calculateAge(birthDate);
+
+                if (age < 13) {
+                    return res.status(403).json({ message: 'Atletas com menos de 13 anos devem ser cadastrados por um responsável.'})
+                }
+
+                if (age < 18 && !responsavelId) {
+                    return res.status(400).json({ message: 'Atletas de 13 a 17 anos precisam de um responsável'})
+                }
             }
 
             const encrypted_pass = await bcrypt.hash(password, 10);
             const newUser = await Users.create({
                 username,
                 email,
-                password: encrypted_pass,
-                type: "Cliente",
-                pontos: 0,
-                ativo: 0,
-                subtype: "Normal",
-                planos: plano,
-                Lv: 0,
-                Xp: {
-                    falta: 100,
-                    tenho: 0,
-                },
-                pontuaçao: {
-                    quiz: 0,
-                    memoria: 0
-                },
-                title: "Explorador Novato",
-                profilePic: "https://feppv-marineer-bucket.s3.eu-central-1.amazonaws.com/aws-1746803776536-68379383.png",
+                password: encrypted_pass
             });
 
             // Gerar token de verificação
