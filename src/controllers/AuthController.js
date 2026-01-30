@@ -39,37 +39,14 @@ const AuthController = {
     register: async (req, res) => {
         const { username, email, password, type,  birthDate, dojoId, responsavelId} = req.body;
 
-        function calculateAge(birthDate) {
-            const today = new Date();
-            const birth = new Date(birthDate);
-            let age = today.getFullYear() - birth.getFullYear();
-            const month = today.getMonth() - birth.getMonth();
-            if (month < 0 || (month === 0 && today.getDate() < birth.getDate())) {
-                age--;
-            }
-            return age;
-        }
-
         try {
             const existingUserByEmail = await Users.findOne({ email });
             if (existingUserByEmail) {
                 return res.status(400).json({ message: "Já existe um usuário com esse email." });
             }
 
-            if (type === 'athlete') {
-                if (!birthDate) {
-                    return res.status(400).json({ message: 'Por favor, preenche a data de nascimento.'})
-                }
-
-                const age = calculateAge(birthDate);
-
-                if (age < 13) {
-                    return res.status(403).json({ message: 'Atletas com menos de 13 anos devem ser cadastrados por um responsável.'})
-                }
-
-                if (age < 18 && !responsavelId) {
-                    return res.status(400).json({ message: 'Atletas de 13 a 17 anos precisam de um responsável'})
-                }
+            if (type === 'athlete' && !birthDate) {
+                return res.status(400).json({ message: 'Por favor, preenche a data de nascimento.'})
             }
 
             const firebaseUser = await admin.auth().createUser({
@@ -108,6 +85,26 @@ const AuthController = {
     logout: async (res) => {
         res.clearCookie("auth", idToken, { httpOnly: true, secure: false, sameSite: "Lax" });
         return res.status(200).send({ message: "Logout efetuado com sucesso" });
+    },
+
+    calculateAge: async (req, res) => {
+        const {birthDate} = req.body;
+
+        const today = new Date();
+        const birth = new Date(birthDate);
+            
+        let age = today.getFullYear() - birth.getFullYear();
+        const month = today.getMonth() - birth.getMonth();
+            
+        if (month < 0 || (month === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+        
+        return res.status(200).json(age);
+    },
+
+    sendEmail: async (req, res) => {
+        const { username, email } = req.body;
     }
 };
 
