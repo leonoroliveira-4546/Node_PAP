@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 
 const UsersSchema = new mongoose.Schema({
+    authUid: {
+      type: String,
+      required: true,
+      unique: true
+    },
     username: {
       type: String,
       required: true,
@@ -25,14 +30,10 @@ const UsersSchema = new mongoose.Schema({
       enum: ["athlete", "responsavel", "sensei", "admin"],
       required: true
     },
-    password: {
-      type: String,
-      required: true
-    },
     birthDate: {
       type: Date,
       required: function () {
-        return this.role === "athlete";
+        return this.type === "athlete";
       }
     },
     responsavelId: {
