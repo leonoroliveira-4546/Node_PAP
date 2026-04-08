@@ -26,10 +26,14 @@ app.use(
 
 //Rotas Públicas
 const AuthRoute = require("./routes/AuthRoute");
+const DojosRoute = require("./routes/DojosRoute");
+const ComunidadeRoute = require("./routes/ComunidadeRoute");
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
-app.use(AuthRoute)
+app.use(AuthRoute);
+app.use(DojosRoute);
+app.use(ComunidadeRoute);
 
 mongoose.connect(mongodb_url)
   .then(result => {
