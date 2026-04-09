@@ -3,6 +3,7 @@ const sendVerificationEmail = require("../utils/sendVerificationEmail");
 const generateInviteToken = require("../utils/generateInviteToken");
 const verifyInviteToken = require("../utils/verifyInviteToken");
 const Users = require("../models/UsersModel");
+const Performance = require("../models/Dojo/PerformanceModel");
 const admin = require("../config/firebase");
 
 const AuthController = {

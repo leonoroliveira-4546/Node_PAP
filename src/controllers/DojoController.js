@@ -76,9 +76,13 @@ const DojoController = {
             const { dojoId } = req.params;
 
             const dojo = await Dojos.findById(dojoId)
-                .populate("members");
+                .populate("members.id");
 
-            res.json({ success: true, members: dojo.members });
+            if (!dojo) {
+                return res.status(404).json({ success: false, message: "Dojo não encontrado" });
+            }
+
+            res.json({ success: true, dojo });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
         }
