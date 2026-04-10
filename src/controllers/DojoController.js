@@ -108,6 +108,26 @@ const DojoController = {
         }
     },
 
+    updateTrainingSchedules: async (req, res) => {
+        try {
+            const { dojoId } = req.params;
+            const { schedules } = req.body;
+
+            const dojo = await Dojos.findById(dojoId);
+
+            if (!dojo) {
+                return res.status(404).json({ success: false, message: "Dojo não encontrado" });
+            }
+
+            dojo.trainingSchedule = schedules;
+            await dojo.save();
+
+            res.json({ success: true, dojo });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
     createTournament: async (req, res) => {
         try {
             const { name, date, location, userId } = req.body;
@@ -136,6 +156,43 @@ const DojoController = {
                 .sort({ date: 1 });
 
             res.json({ success: true, tournaments });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    updateTournament: async (req, res) => {
+        try {
+            const { tournamentId } = req.params;
+            const { name, date, location } = req.body;
+
+            const tournament = await Tournament.findByIdAndUpdate(
+                tournamentId,
+                { name, date, location },
+                { new: true }
+            );
+
+            if (!tournament) {
+                return res.status(404).json({ success: false, message: "Torneio não encontrado" });
+            }
+
+            res.json({ success: true, tournament });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    deleteTournament: async (req, res) => {
+        try {
+            const { tournamentId } = req.params;
+
+            const tournament = await Tournament.findByIdAndDelete(tournamentId);
+
+            if (!tournament) {
+                return res.status(404).json({ success: false, message: "Torneio não encontrado" });
+            }
+
+            res.json({ success: true, message: "Torneio removido com sucesso" });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
         }
