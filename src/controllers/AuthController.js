@@ -197,7 +197,7 @@ const AuthController = {
 
     addAbsence: async (req, res) => {
         try {
-            const { userId, date } = req.body;
+            const { userId, childId, date } = req.body;
 
             const user = await Users.findById(userId);
 
@@ -207,6 +207,23 @@ const AuthController = {
 
             const absenceDate = new Date(date);
             const month = absenceDate.toISOString().slice(0, 7);
+
+            if (childId) {
+                const child = user.childrens.find(c => c._id.toString() === childId);
+                if (!child) {
+                    return res.status(404).json({ success: false, message: "Filho não encontrado" });
+                }
+
+                const existingMonth = child.absences.find(a => a.month === month);
+                if (existingMonth) {
+                    existingMonth.count += 1;
+                } else {
+                    child.absences.push({ month, count: 1 });
+                }
+
+                await user.save();
+                return res.json({ success: true, absences: child.absences });
+            }
 
             const existingMonth = user.absences.find(a => a.month === month);
 

@@ -15,8 +15,8 @@ const PerformanceModel = new mongoose.Schema({
     max: 5
   },
   feedback: {
-    improvements: [{ type: String, required: true }],
-    needsImprovement: [{ type: String, required: true }]
+    improvements: [{ type: String }],
+    needsImprovement: [{ type: String }]
   },
   date: {
     type: Date,

@@ -13,6 +13,7 @@ app.post("/dojos/:dojoId/schedule", verifyToken, DojoController.addTrainingSched
 app.put("/dojos/:dojoId/schedule", verifyToken, DojoController.updateTrainingSchedules);
 app.get("/dojo/members/:dojoId", verifyToken, DojoController.getDojoMembers);
 app.post("/dojo/remove-member", verifyToken, DojoController.removeMember);
+app.post("/dojo/remove-child", verifyToken, DojoController.removeChildFromResponsible);
 
 app.post("/dojos/:dojoId/tournaments", verifyToken, DojoController.createTournament);
 app.get("/dojos/:dojoId/tournaments", verifyToken, DojoController.getDojoTournaments);

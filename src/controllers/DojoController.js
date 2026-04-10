@@ -76,13 +76,43 @@ const DojoController = {
             const { dojoId } = req.params;
 
             const dojo = await Dojos.findById(dojoId)
-                .populate("members.id");
+                .populate("members._id", "username email type childrens birthDate");
 
             if (!dojo) {
                 return res.status(404).json({ success: false, message: "Dojo não encontrado" });
             }
 
-            res.json({ success: true, dojo });
+            // Criar lista de membros reais
+            const realMembers = [];
+
+            for (const member of dojo.members) {
+                if (member._id) {
+                    if (member._id.type === 'responsavel' && member._id.childrens && member._id.childrens.length > 0) {
+                        // Se for responsável com filhos, adicionar os filhos como membros
+                        for (const child of member._id.childrens) {
+                            realMembers.push({
+                                _id: child._id,
+                                username: child.username,
+                                birthDate: child.birthDate,
+                                type: 'athlete',
+                                parentId: member._id._id,
+                                parentUsername: member._id.username
+                            });
+                        }
+                    } else {
+                        // Se não for responsável ou não tiver filhos, adicionar o próprio usuário
+                        realMembers.push({
+                            _id: member._id._id,
+                            username: member._id.username,
+                            email: member._id.email,
+                            type: member._id.type,
+                            birthDate: member._id.birthDate
+                        });
+                    }
+                }
+            }
+
+            res.json({ success: true, members: realMembers, dojo: { ...dojo.toObject(), members: realMembers } });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
         }
@@ -123,6 +153,28 @@ const DojoController = {
             await dojo.save();
 
             res.json({ success: true, dojo });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    removeChildFromResponsible: async (req, res) => {
+        try {
+            const { responsibleId, childId } = req.body;
+
+            const Users = require("../models/UsersModel");
+            const responsible = await Users.findById(responsibleId);
+
+            if (!responsible) {
+                return res.status(404).json({ success: false, message: "Responsável não encontrado" });
+            }
+
+            responsible.childrens = responsible.childrens.filter(
+                child => child._id.toString() !== childId
+            );
+            await responsible.save();
+
+            res.json({ success: true, message: "Filho removido com sucesso" });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
         }
