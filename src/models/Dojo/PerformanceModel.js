@@ -18,6 +18,10 @@ const PerformanceModel = new mongoose.Schema({
     improvements: [{ type: String }],
     needsImprovement: [{ type: String }]
   },
+  month: {
+    type: String, // YYYY-MM
+    required: true
+  },
   date: {
     type: Date,
     default: Date.now

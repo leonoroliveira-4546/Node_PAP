@@ -47,7 +47,8 @@ const UsersSchema = new mongoose.Schema({
       birthDate: { type: Date, required: true},
       absences: [{
         month: { type: String, required: true },
-        count: { type: Number, required: true }
+        count: { type: Number, required: true },
+        reason: { type: String, enum: ["disease", "other"], default: "other" }
       }]
     }],
     dojoId: {
@@ -57,7 +58,8 @@ const UsersSchema = new mongoose.Schema({
     },
     absences: [{
       month: { type: String, required: true },
-      count: { type: Number, required: true }
+      count: { type: Number, required: true },
+      reason: { type: String, enum: ["disease", "other"], default: "other" }
     }],
     status: {
       type: String,

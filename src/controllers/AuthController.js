@@ -155,18 +155,41 @@ const AuthController = {
                 return res.status(400).json({ success: false, message: "É necessário athleteId ou childId" });
             }
 
-            const performance = new Performance({
-                athlete: athleteId || null,
-                childId: childId || null,
-                rating,
-                feedback: {
-                    improvements,
-                    needsImprovement
-                }
-            });
-            await performance.save();
+            let query = {};
+            if (athleteId) {
+                query.athlete = athleteId;
+            } else {
+                query.childId = childId;
+            }
 
-            res.json({ success: true, performance });
+            const existingPerformance = await Performance.findOne(query).sort({ date: -1 });
+
+            const currentMonth = new Date().toISOString().slice(0, 7);
+
+            if (existingPerformance) {
+                // Update existing
+                existingPerformance.rating = rating;
+                existingPerformance.feedback.improvements = improvements;
+                existingPerformance.feedback.needsImprovement = needsImprovement;
+                existingPerformance.month = currentMonth; // Add month if missing
+                existingPerformance.date = new Date();
+                await existingPerformance.save();
+                return res.json({ success: true, performance: existingPerformance });
+            } else {
+                // Create new
+                const performance = new Performance({
+                    athlete: athleteId || null,
+                    childId: childId || null,
+                    rating,
+                    feedback: {
+                        improvements,
+                        needsImprovement
+                    },
+                    month: currentMonth
+                });
+                await performance.save();
+                return res.json({ success: true, performance });
+            }
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
         }
@@ -189,6 +212,11 @@ const AuthController = {
             const performance = await Performance.findOne(query)
                 .sort({ date: -1 });
 
+            if (performance && !performance.month) {
+                performance.month = performance.date.toISOString().slice(0, 7);
+                await performance.save();
+            }
+
             res.json({ success: true, performance });
         } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -197,7 +225,7 @@ const AuthController = {
 
     addAbsence: async (req, res) => {
         try {
-            const { userId, childId, date } = req.body;
+            const { userId, childId, date, reason } = req.body;
 
             const user = await Users.findById(userId);
 
@@ -218,7 +246,7 @@ const AuthController = {
                 if (existingMonth) {
                     existingMonth.count += 1;
                 } else {
-                    child.absences.push({ month, count: 1 });
+                    child.absences.push({ month, count: 1, reason: reason || "other" });
                 }
 
                 await user.save();
@@ -230,7 +258,7 @@ const AuthController = {
             if (existingMonth) {
                 existingMonth.count += 1;
             } else {
-                user.absences.push({ month, count: 1 });
+                user.absences.push({ month, count: 1, reason: reason || "other" });
             }
             await user.save();
 
@@ -257,7 +285,12 @@ const AuthController = {
 
             const absence = user.absences.find(a => a.month === month);
 
-            return res.json({ success: true, month, count: absence ? absence.count : 0 });
+            return res.json({
+                success: true,
+                month,
+                count: absence ? absence.count : 0,
+                absence: absence || { month, count: 0, reason: null }
+            });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
         }
