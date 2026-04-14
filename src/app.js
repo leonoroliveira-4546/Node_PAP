@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const cors= require("cors")
 
 var bodyParser = require("body-parser");
-var mongodb_url = "mongodb://localhost:27017/PAP_db";
+var mongodb_url = "mongodb+srv://leonormmoliveira:dbUserPassword@pap.wkyhqax.mongodb.net/PAP_db?appName=PAP";
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
