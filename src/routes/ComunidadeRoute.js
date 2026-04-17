@@ -5,12 +5,16 @@ const ComunidadeController = require('../controllers/ComunidadeController');
 const verifyToken = require("../middlewares/is_auth");
 const { upload } = require("../middlewares/upload");
 
+// NEWS
+app.get('/news', verifyToken, ComunidadeController.getNews);
+
 // POSTS
 app.get('/comunidade', verifyToken, ComunidadeController.getPosts);
 app.post('/posts', verifyToken, upload.single("file"), ComunidadeController.createPost);
 app.get('/posts/:id', verifyToken, ComunidadeController.getPostDetails);
-app.put('/posts/:id', verifyToken, ComunidadeController.updatePost);
+app.put('/posts/:id', verifyToken, upload.single("file"), ComunidadeController.updatePost);
 app.delete('/posts/:id', verifyToken, ComunidadeController.deletePost);
+app.post('/posts/:id/like', verifyToken, ComunidadeController.likePost);
 
 // COMMENTS
 app.post('/posts/:id/comments', verifyToken, ComunidadeController.addComment);

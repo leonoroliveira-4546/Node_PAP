@@ -1,13 +1,55 @@
 const Comunidade = require('../models/Comunidade/ComunidadeModel');
 const Comentario = require('../models/Comunidade/CommentsModel');
+const News = require('../models/Comunidade/NewsModel');
 const { uploadToCloudinary } = require('../middlewares/upload');
 const mongoose = require('mongoose');
 
 const ComunidadeController = {
+    getNews: async (req, res) => {
+        try {
+            const news = await News.find().sort({ createdAt: -1 });
+            res.json({ success: true, data: news });
+        } catch (err) {
+            res.status(500).json({ success: false, message: 'Erro ao buscar notícias.' });
+        }
+    },
+
+    likePost: async (req, res) => {
+        try {
+            const postId = req.params.id;
+            const userId = req.user._id;
+
+            const post = await Comunidade.findById(postId);
+            if (!post) {
+                return res.status(404).json({ success: false, message: 'Post não encontrado.' });
+            }
+
+            const isLiked = post.likes.includes(userId);
+            if (isLiked) {
+                post.likes.pull(userId);
+            } else {
+                post.likes.push(userId);
+            }
+
+            await post.save();
+            res.json({ success: true, likes: post.likes.length });
+        } catch (err) {
+            res.status(500).json({ success: false, message: 'Erro ao curtir post.' });
+        }
+    },
+
     getPosts: async (req, res) => {
         try {
-            const posts = await Comunidade.find()
+            const { community = 'geral' } = req.query;
+            const posts = await Comunidade.find({ community })
                 .populate('author', 'username profilePic')
+                .populate({
+                    path: 'comments',
+                    populate: {
+                        path: 'author',
+                        select: 'username profilePic'
+                    }
+                })
                 .sort({ createdAt: -1 });
 
             res.json({ success: true, data: posts });
@@ -18,7 +60,7 @@ const ComunidadeController = {
 
     createPost: async (req, res) => {
         try {
-            let { title, message } = req.body;
+            let { title, message, community = 'geral' } = req.body;
             const userId = req.user._id;
 
             if (!userId) {
@@ -35,7 +77,8 @@ const ComunidadeController = {
                 title,
                 message,
                 author: userId,
-                imagens: imagens, 
+                imagens: imagens,
+                community
             });
             await newPost.save();
 
@@ -94,7 +137,7 @@ const ComunidadeController = {
     },
 
     updatePost: async (req, res) => {
-        let { title, message, imagens } = req.body;
+        const { title, message, imagens } = req.body;
         const postId = req.params.id;
 
         if (!mongoose.Types.ObjectId.isValid(postId)) {
@@ -105,31 +148,42 @@ const ComunidadeController = {
             const post = await Comunidade.findById(postId);
 
             if (!post) {
-                return res.status(404).json({ success: false, message: 'Post não encontrada.' });
+                return res.status(404).json({ success: false, message: 'Post não encontrado.' });
             }
 
             post.title = title || post.title;
             post.message = message || post.message;
-            post.imagens = imagens || post.imagens;
+
+            if (imagens) {
+                post.imagens = typeof imagens === 'string' ? [imagens] : imagens;
+            }
+
+            if (req.file) {
+                const uploaded = await uploadToCloudinary(req.file.buffer);
+                post.imagens = [...post.imagens, uploaded.url];
+            }
+
             await post.save();
 
             res.json({ success: true, post });
         } catch (error) {
+            console.error(error);
             res.status(500).json({ success: false, message: 'Erro ao atualizar post.' });
         }
     },
 
     addComment: async (req, res) => {
         try {
-            const { message, parentCommentId, userId } = req.body;
+            const { message, parentCommentId } = req.body;
             const postId = req.params.id;
+            const userId = req.user?._id;
 
             if (!message) {
                 return res.status(400).json({ success: false, message: 'Mensagem obrigatória.' });
             }
 
             if (!userId) {
-                return res.status(400).json({ success: false, message: 'Usuário obrigatório.' });
+                return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
             }
 
             const newComment = new Comentario({

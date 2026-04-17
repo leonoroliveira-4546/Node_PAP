@@ -18,6 +18,15 @@ const ComunidadeModel = new mongoose.Schema({
         type: [String],
         default: []
     },
+    community: {
+        type: String,
+        enum: ['geral', 'dojo'],
+        default: 'geral'
+    },
+    likes: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'users'
+    }],
     comments: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'comments'
