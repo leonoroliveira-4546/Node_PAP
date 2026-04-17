@@ -3,6 +3,7 @@ const Conversation = require("../models/Chat/ConversationModel");
 const Message = require("../models/Chat/MessageModel");
 const User = require("../models/UsersModel");
 const Dojo = require("../models/Dojo/DojosModel");
+const { getIO } = require('../socket/socketHandler');
 
 // Helper to get dojo for a user
 const getDojo = async (userId) => {
@@ -42,6 +43,30 @@ const canChat = async (userA, userB) => {
         }
     }
     return false;
+};
+
+// Helper to get possible recipients for a user
+const getPossibleRecipients = async (user) => {
+    const dojo = await getDojo(user._id);
+    if (!dojo) return [];
+
+    let recipients = [];
+    if (user.type === 'sensei') {
+        // Athletes and responsaveis in the dojo
+        const members = await User.find({ _id: { $in: dojo.members }, type: { $in: ['athlete', 'responsavel'] } });
+        recipients = members;
+    } else if (user.type === 'responsavel') {
+        // Sensei and athletes under this responsavel
+        const sensei = await User.findById(dojo.sensei);
+        const athletes = await User.find({ responsavelId: user._id, type: 'athlete' });
+        recipients = [sensei, ...athletes].filter(Boolean);
+    } else if (user.type === 'athlete') {
+        // Sensei and responsavel
+        const sensei = await User.findById(dojo.sensei);
+        const responsavel = user.responsavelId ? await User.findById(user.responsavelId) : null;
+        recipients = [sensei, responsavel].filter(Boolean);
+    }
+    return recipients;
 };
 
 // Get conversations for a user
@@ -153,8 +178,20 @@ const sendMessage = async (req, res) => {
             senderId,
             content
         });
-
         await message.save();
+
+        const populatedMessage = await Message.findById(message._id)
+            .populate('senderId', 'username profilePic');
+
+        const io = getIO();
+        const recipientSocket = userSockets[recipientId];
+
+        if (recipientSocket) {
+            io.to(recipientSocket).emit('receive_message', {
+                conversationId: conversation._id,
+                message: populatedMessage
+            });
+        }
 
         res.json(message);
     } catch (error) {

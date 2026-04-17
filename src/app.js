@@ -1,13 +1,16 @@
 require("dotenv").config();
 const express = require('express');
+const http = require('http');
 const path = require("path");
 const mongoose = require("mongoose");
-const cors= require("cors")
+const cors= require("cors");
+const { initializeSocket } = require('./socket/socketHandler');
 
 var bodyParser = require("body-parser");
 var mongodb_url = "mongodb+srv://leonormmoliveira:dbUserPassword@pap.wkyhqax.mongodb.net/PAP_db?appName=PAP";
 
 const app = express();
+const server = http.createServer(app);
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -39,8 +42,11 @@ app.use(ChatRoute);
 
 mongoose.connect(mongodb_url)
   .then(result => {
-    app.listen(8000, () => {
-      console.log('Servidor rodando na porta 8000...')
+    // Initialize socket.io
+    initializeSocket(server);
+    
+    server.listen(8001, () => {
+      console.log('Servidor rodando na porta 8001...')
     })
   })
   .catch(error => {
