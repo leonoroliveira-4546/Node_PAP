@@ -25,8 +25,7 @@ const initializeSocket = (server) => {
                 userSockets[id] = [];
             }
 
-            userSockets[userId] = socket.id;
-            socket.userId = userId;
+            userSockets[userId].push(socket.id);
             console.log('User joined:', userId, 'socket:', socket.id);
         });
 
