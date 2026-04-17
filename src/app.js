@@ -28,12 +28,14 @@ app.use(
 const AuthRoute = require("./routes/AuthRoute");
 const DojosRoute = require("./routes/DojosRoute");
 const ComunidadeRoute = require("./routes/ComunidadeRoute");
+const ChatRoute = require("./routes/ChatRoute");
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(AuthRoute);
 app.use(DojosRoute);
 app.use(ComunidadeRoute);
+app.use(ChatRoute);
 
 mongoose.connect(mongodb_url)
   .then(result => {

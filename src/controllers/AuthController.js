@@ -75,7 +75,7 @@ const AuthController = {
                 emailVerified: false
             });
             
-            return res.status(201).json({success: true, message: "Usuário criado com sucesso. Verifique seu e-mail.", user: newUser._id });
+            return res.status(201).json({success: true, message: "Usuário criado com sucesso. Verifique seu e-mail.", user: newUser });
         } catch (err) {
             console.log(err);
             if (firebaseUser?.uid) {

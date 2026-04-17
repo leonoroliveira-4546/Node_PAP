@@ -76,7 +76,7 @@ const DojoController = {
             const { dojoId } = req.params;
 
             const dojo = await Dojos.findById(dojoId)
-                .populate("members._id", "username email type childrens birthDate");
+                .populate("members", "username email type childrens birthDate");
 
             if (!dojo) {
                 return res.status(404).json({ success: false, message: "Dojo não encontrado" });
@@ -87,26 +87,26 @@ const DojoController = {
 
             for (const member of dojo.members) {
                 if (member._id) {
-                    if (member._id.type === 'responsavel' && member._id.childrens && member._id.childrens.length > 0) {
+                    if (member.type === 'responsavel' && member.childrens && member.childrens.length > 0) {
                         // Se for responsável com filhos, adicionar os filhos como membros
-                        for (const child of member._id.childrens) {
+                        for (const child of member.childrens) {
                             realMembers.push({
                                 _id: child._id,
                                 username: child.username,
                                 birthDate: child.birthDate,
                                 type: 'athlete',
-                                parentId: member._id._id,
-                                parentUsername: member._id.username
+                                parentId: member._id,
+                                parentUsername: member.username
                             });
                         }
                     } else {
                         // Se não for responsável ou não tiver filhos, adicionar o próprio usuário
                         realMembers.push({
-                            _id: member._id._id,
-                            username: member._id.username,
-                            email: member._id.email,
-                            type: member._id.type,
-                            birthDate: member._id.birthDate
+                            _id: member._id,
+                            username: member.username,
+                            email: member.email,
+                            type: member.type,
+                            birthDate: member.birthDate
                         });
                     }
                 }
