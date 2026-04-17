@@ -41,11 +41,26 @@ const UsersSchema = new mongoose.Schema({
       ref: "users",
       default: null
     },
+    childrens: [{
+      _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+      username: { type: String, required: true},
+      birthDate: { type: Date, required: true},
+      absences: [{
+        month: { type: String, required: true },
+        count: { type: Number, required: true },
+        reason: { type: String, enum: ["disease", "other"], default: "other" }
+      }]
+    }],
     dojoId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "dojos",
       default: null
     },
+    absences: [{
+      month: { type: String, required: true },
+      count: { type: Number, required: true },
+      reason: { type: String, enum: ["disease", "other"], default: "other" }
+    }],
     status: {
       type: String,
       enum: ["pending", "active", "blocked"],

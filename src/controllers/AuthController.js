@@ -1,9 +1,10 @@
+const sendResponsavelInviteEmail = require("../utils/sendResponsavelInviteEmail");
 const sendVerificationEmail = require("../utils/sendVerificationEmail");
+const generateInviteToken = require("../utils/generateInviteToken");
+const verifyInviteToken = require("../utils/verifyInviteToken");
 const Users = require("../models/UsersModel");
+const Performance = require("../models/Dojo/PerformanceModel");
 const admin = require("../config/firebase");
-const jwt = require("jsonwebtoken")
-const bcrypt = require("bcrypt")
-const jwtkey = 'jkdoamnwpa';
 
 const AuthController = {
     login: async (req, res) => {
@@ -15,11 +16,11 @@ const AuthController = {
             const user = await Users.findOne({ authUid: decoded.uid })
 
             if (!user) {
-                return res.status(404).json({message: 'Usuário não encontrado' });
+                return res.status(404).json({success: false, message: 'Usuário não encontrado' });
             }
 
             if (!decoded.email_verified) {
-                return res.status(403).json({message: 'Email não verificado. Verifique sua caixa de entrada.' });
+                return res.status(403).json({success: false, message: 'Email não verificado. Verifique sua caixa de entrada.' });
             }
 
             if (!user.emailVerified) {
@@ -29,47 +30,27 @@ const AuthController = {
             }
 
             res.cookie("auth", idToken, { httpOnly: true, secure: false, sameSite: "Lax" });
-            return res.json({user, message: 'Login efetuado com sucesso' });
+            return res.json({success: true, user, message: 'Login efetuado com sucesso' });
         } catch (err) {
-            console.error(err);
-            return res.status(401).json({message: 'Token inválido ou expirado'});
+            return res.status(401).json({success: false, message: 'Token inválido ou expirado'});
         }
     },
 
     register: async (req, res) => {
-        const { username, email, password, type,  birthDate, dojoId, responsavelId} = req.body;
-
-        function calculateAge(birthDate) {
-            const today = new Date();
-            const birth = new Date(birthDate);
-            let age = today.getFullYear() - birth.getFullYear();
-            const month = today.getMonth() - birth.getMonth();
-            if (month < 0 || (month === 0 && today.getDate() < birth.getDate())) {
-                age--;
-            }
-            return age;
-        }
+        const { username, email, password, type,  birthDate, dojoId, responsavelId, childrens} = req.body;
 
         try {
             const existingUserByEmail = await Users.findOne({ email });
             if (existingUserByEmail) {
-                return res.status(400).json({ message: "Já existe um usuário com esse email." });
+                return res.status(400).json({success: false, message: "Já existe um usuário com esse email." });
             }
 
-            if (type === 'athlete') {
-                if (!birthDate) {
-                    return res.status(400).json({ message: 'Por favor, preenche a data de nascimento.'})
-                }
+            if (type === 'athlete' && !birthDate) {
+                return res.status(400).json({success: false, message: 'Por favor, preenche a data de nascimento.'});
+            }
 
-                const age = calculateAge(birthDate);
-
-                if (age < 13) {
-                    return res.status(403).json({ message: 'Atletas com menos de 13 anos devem ser cadastrados por um responsável.'})
-                }
-
-                if (age < 18 && !responsavelId) {
-                    return res.status(400).json({ message: 'Atletas de 13 a 17 anos precisam de um responsável'})
-                }
+            if (type === 'responsavel' && (!childrens || childrens.length === 0)) {
+                return res.status(400).json({success: false, message: "Responsável precisa ter pelo menos um filho." });
             }
 
             const firebaseUser = await admin.auth().createUser({
@@ -88,26 +69,231 @@ const AuthController = {
                 type,
                 birthDate: type === 'athlete' ? birthDate: null,
                 responsavelId: responsavelId || null,
+                childrens: type === 'responsavel' ? childrens : [],
                 dojoId: dojoId || null,
                 status: 'pending',
                 emailVerified: false
             });
             
-            return res.status(201).json({ message: "Usuário criado com sucesso. Verifique seu e-mail.", user: newUser._id });
+            return res.status(201).json({success: true, message: "Usuário criado com sucesso. Verifique seu e-mail.", user: newUser._id });
         } catch (err) {
             console.log(err);
-
-            if (err.uid) {
-                await admin.auth().deleteUser(err.uid);
+            if (firebaseUser?.uid) {
+                await admin.auth().deleteUser(firebaseUser.uid);
             }
 
-            return res.status(500).json({ message: "Erro ao criar o usuário", error: err.message });
+            return res.status(500).json({success: false, message: "Erro ao criar o usuário", error: err.message });
         }
     },
 
     logout: async (res) => {
-        res.clearCookie("auth", idToken, { httpOnly: true, secure: false, sameSite: "Lax" });
-        return res.status(200).send({ message: "Logout efetuado com sucesso" });
+        res.clearCookie("auth", { httpOnly: true, secure: false, sameSite: "Lax" });
+        return res.status(200).send({success: true, message: "Logout efetuado com sucesso" });
+    },
+
+    calculateAge: async (req, res) => {
+        const {birthDate} = req.body;
+
+        const today = new Date();
+        const birth = new Date(birthDate);
+            
+        let age = today.getFullYear() - birth.getFullYear();
+        const month = today.getMonth() - birth.getMonth();
+            
+        if (month < 0 || (month === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+        
+        return res.status(200).json(age);
+    },
+
+    inviteResponsavel: async (req, res) => {
+        const { email, athleteName } = req.body;
+
+        try {
+            const responsavel = await Users.findOne({ email, type: "responsavel" });
+            if (!responsavel) {
+                return res.status(404).json({success: false, message: "Responsável não encontrado" });
+            }
+
+            const token = generateInviteToken({
+                athleteName,
+                responsavelId: responsavel._id.toString()
+            });
+
+            const link = `http://localhost:8100/signup/confirm-responsavel?token=${token}`;
+
+            await sendResponsavelInviteEmail(
+                email,
+                athleteName,
+                link
+            );
+
+            return res.json({success: true, message: "Convite enviado" });
+        } catch (err) {
+            return res.status(500).json({success: false, message: "Erro ao enviar convite" });
+        }
+    },
+
+    confirmResponsavelInvite: async (req, res) => {
+        const { token } = req.body;
+
+        try {
+            const decoded = verifyInviteToken(token);
+
+            return res.json({success: true, responsavelId: decoded.responsavelId });
+        } catch (err) {
+            return res.status(400).json({success: false, message: "Token inválido ou expirado" });
+        }
+    },
+
+    addPerformance: async (req, res) => {
+        try {
+            const { athleteId, childId, rating, improvements, needsImprovement } = req.body;
+
+            if (!athleteId && !childId) {
+                return res.status(400).json({ success: false, message: "É necessário athleteId ou childId" });
+            }
+
+            let query = {};
+            if (athleteId) {
+                query.athlete = athleteId;
+            } else {
+                query.childId = childId;
+            }
+
+            const existingPerformance = await Performance.findOne(query).sort({ date: -1 });
+
+            const currentMonth = new Date().toISOString().slice(0, 7);
+
+            if (existingPerformance) {
+                // Update existing
+                existingPerformance.rating = rating;
+                existingPerformance.feedback.improvements = improvements;
+                existingPerformance.feedback.needsImprovement = needsImprovement;
+                existingPerformance.month = currentMonth; // Add month if missing
+                existingPerformance.date = new Date();
+                await existingPerformance.save();
+                return res.json({ success: true, performance: existingPerformance });
+            } else {
+                // Create new
+                const performance = new Performance({
+                    athlete: athleteId || null,
+                    childId: childId || null,
+                    rating,
+                    feedback: {
+                        improvements,
+                        needsImprovement
+                    },
+                    month: currentMonth
+                });
+                await performance.save();
+                return res.json({ success: true, performance });
+            }
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    getAthletePerformance: async (req, res) => {
+        try {
+            const { athleteId, childId } = req.query;
+
+            let query = {};
+
+            if (athleteId) {
+                query.athlete = athleteId;
+            } else if (childId) {
+                query.childId = childId;
+            } else {
+                return res.status(400).json({ success: false, message: "Falta athleteId ou childId" });
+            }
+
+            const performance = await Performance.findOne(query)
+                .sort({ date: -1 });
+
+            if (performance && !performance.month) {
+                performance.month = performance.date.toISOString().slice(0, 7);
+                await performance.save();
+            }
+
+            res.json({ success: true, performance });
+        } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    addAbsence: async (req, res) => {
+        try {
+            const { userId, childId, date, reason } = req.body;
+
+            const user = await Users.findById(userId);
+
+            if (!user) {
+                return res.status(404).json({ success: false, message: "User não encontrado" });
+            }
+
+            const absenceDate = new Date(date);
+            const month = absenceDate.toISOString().slice(0, 7);
+
+            if (childId) {
+                const child = user.childrens.find(c => c._id.toString() === childId);
+                if (!child) {
+                    return res.status(404).json({ success: false, message: "Filho não encontrado" });
+                }
+
+                const existingMonth = child.absences.find(a => a.month === month);
+                if (existingMonth) {
+                    existingMonth.count += 1;
+                } else {
+                    child.absences.push({ month, count: 1, reason: reason || "other" });
+                }
+
+                await user.save();
+                return res.json({ success: true, absences: child.absences });
+            }
+
+            const existingMonth = user.absences.find(a => a.month === month);
+
+            if (existingMonth) {
+                existingMonth.count += 1;
+            } else {
+                user.absences.push({ month, count: 1, reason: reason || "other" });
+            }
+            await user.save();
+
+            res.json({ success: true, absences: user.absences });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    getAbsencesByMonth: async (req, res) => {
+        try {
+            const { userId } = req.params;
+            const { month } = req.query;
+
+            if (!month) {
+                return res.status(400).json({ success: false, message: "Mês é obrigatório (formato: YYYY-MM)" });
+            }   
+
+            const user = await Users.findById(userId).select("absences");
+
+            if (!user) {
+                return res.status(404).json({ success: false, message: "User não encontrado" });
+            }
+
+            const absence = user.absences.find(a => a.month === month);
+
+            return res.json({
+                success: true,
+                month,
+                count: absence ? absence.count : 0,
+                absence: absence || { month, count: 0, reason: null }
+            });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
     }
 };
 
