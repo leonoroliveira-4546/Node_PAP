@@ -32,6 +32,7 @@ const AuthRoute = require("./routes/AuthRoute");
 const DojosRoute = require("./routes/DojosRoute");
 const ComunidadeRoute = require("./routes/ComunidadeRoute");
 const ChatRoute = require("./routes/ChatRoute");
+const FeaturesRoute = require("./routes/FeaturesRoute");
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -39,6 +40,7 @@ app.use(AuthRoute);
 app.use(DojosRoute);
 app.use(ComunidadeRoute);
 app.use(ChatRoute);
+app.use(FeaturesRoute);
 
 mongoose.connect(mongodb_url)
   .then(result => {

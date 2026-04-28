@@ -20,6 +20,15 @@ const TournamentModel = new mongoose.Schema({
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'users'
+  },
+  status: {
+    type: String,
+    enum: ['open', 'closed', 'finished'],
+    default: 'open'
+  },
+  winner: {
+    type: String,
+    default: null
   }
 });
 

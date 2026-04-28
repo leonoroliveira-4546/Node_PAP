@@ -11,6 +11,10 @@ const UsersSchema = new mongoose.Schema({
       required: true,
       unique: false
     },
+    name: {
+      type: String,
+      default: null
+    },
     profilePic: {
       type: String,
       default: null
@@ -61,6 +65,24 @@ const UsersSchema = new mongoose.Schema({
       count: { type: Number, required: true },
       reason: { type: String, enum: ["disease", "other"], default: "other" }
     }],
+    belt: {
+      type: String,
+      enum: ["Branca", "Amarela", "Laranja", "Verde", "Azul", "Vermelha", "Marrom", "Preta"],
+      default: "Branca"
+    },
+    points: {
+      type: Number,
+      default: 0
+    },
+    ranking: {
+      type: Number,
+      default: null
+    },
+    currentPlan: {
+      type: String,
+      enum: ["free", "economico", "premium"],
+      default: "free"
+    },
     status: {
       type: String,
       enum: ["pending", "active", "blocked"],

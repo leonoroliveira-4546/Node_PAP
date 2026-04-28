@@ -20,13 +20,14 @@ const initializeSocket = (server) => {
         // User joins - store socket id
         socket.on('join', (userId) => {
             const id = userId.toString();
+            socket.userId = id;
 
             if (!userSockets[id]) {
                 userSockets[id] = [];
             }
 
-            userSockets[userId].push(socket.id);
-            console.log('User joined:', userId, 'socket:', socket.id);
+            userSockets[id].push(socket.id);
+            console.log('User joined:', id, 'socket:', socket.id);
         });
 
         // Listen for new messages
@@ -34,6 +35,11 @@ const initializeSocket = (server) => {
             try {
                 const { conversationId, recipientId, content } = data;
                 const senderId = socket.userId;
+
+                if (!senderId) {
+                    socket.emit('error', { message: 'Not authenticated' });
+                    return;
+                }
 
                 // Save message to database
                 const message = new Message({
@@ -48,20 +54,23 @@ const initializeSocket = (server) => {
 
                 // Send to recipient
                 const recipientSockets = userSockets[recipientId.toString()] || [];
-                recipientSockets.forEach(id => {
-                    io.to(id).emit('receive_message', {
+                recipientSockets.forEach(sockId => {
+                    io.to(sockId).emit('receive_message', {
                         conversationId,
                         message: populatedMessage
                     });
                 });
 
+                // Echo back to sender
                 const senderSockets = userSockets[senderId] || [];
-                senderSockets.forEach(id => {
-                    io.to(id).emit('receive_message', {
+                senderSockets.forEach(sockId => {
+                    io.to(sockId).emit('receive_message', {
                         conversationId,
                         message: populatedMessage
                     });
                 });
+
+                socket.emit('message_sent', { success: true });
             } catch (error) {
                 socket.emit('error', { message: error.message });
             }

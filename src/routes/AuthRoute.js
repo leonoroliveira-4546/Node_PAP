@@ -19,4 +19,7 @@ app.get("/getAthletePerformance", verifyToken, AuthController.getAthletePerforma
 app.post("/addAbsence", verifyToken, AuthController.addAbsence);
 app.get("/getAthleteAbsences/:userId", verifyToken, AuthController.getAbsencesByMonth);
 
+app.get("/ranking", verifyToken, AuthController.getRanking);
+app.put("/profile", verifyToken, AuthController.updateProfile);
+
 module.exports = app;

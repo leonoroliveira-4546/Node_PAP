@@ -86,7 +86,7 @@ const AuthController = {
         }
     },
 
-    logout: async (res) => {
+    logout: async (req, res) => {
         res.clearCookie("auth", { httpOnly: true, secure: false, sameSite: "Lax" });
         return res.status(200).send({success: true, message: "Logout efetuado com sucesso" });
     },
@@ -291,6 +291,54 @@ const AuthController = {
                 count: absence ? absence.count : 0,
                 absence: absence || { month, count: 0, reason: null }
             });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    getRanking: async (req, res) => {
+        try {
+            const athletes = await Users.find({ type: 'athlete' })
+                .select('username profilePic belt points dojoId')
+                .sort({ points: -1 });
+
+            const ranked = athletes.map((athlete, index) => ({
+                _id: athlete._id,
+                username: athlete.username,
+                profilePic: athlete.profilePic,
+                belt: athlete.belt || 'Branca',
+                points: athlete.points || 0,
+                dojoId: athlete.dojoId,
+                ranking: index + 1
+            }));
+
+            return res.json({ success: true, data: ranked });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    updateProfile: async (req, res) => {
+        try {
+            const userId = req.user._id;
+            const { username, name, belt } = req.body;
+
+            const updateFields = {};
+            if (username) updateFields.username = username;
+            if (name !== undefined) updateFields.name = name;
+            if (belt) updateFields.belt = belt;
+
+            const updatedUser = await Users.findByIdAndUpdate(
+                userId,
+                { $set: updateFields },
+                { new: true, runValidators: true }
+            );
+
+            if (!updatedUser) {
+                return res.status(404).json({ success: false, message: 'Usuário não encontrado' });
+            }
+
+            return res.json({ success: true, user: updatedUser });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
         }
