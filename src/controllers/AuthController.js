@@ -77,18 +77,20 @@ const AuthController = {
             
             return res.status(201).json({success: true, message: "Usuário criado com sucesso. Verifique seu e-mail.", user: newUser });
         } catch (err) {
-            console.log(err);
             if (firebaseUser?.uid) {
                 await admin.auth().deleteUser(firebaseUser.uid);
             }
-
             return res.status(500).json({success: false, message: "Erro ao criar o usuário", error: err.message });
         }
     },
 
     logout: async (req, res) => {
-        res.clearCookie("auth", { httpOnly: true, secure: false, sameSite: "Lax" });
-        return res.status(200).send({success: true, message: "Logout efetuado com sucesso" });
+        try {
+            res.clearCookie("auth", { httpOnly: true, secure: false, sameSite: "Lax" });
+            return res.status(200).send({success: true, message: "Logout efetuado com sucesso" });
+        } catch (err) {
+            return res.status(500).json({success: false, error: "Erro ao efetuar logout: " + err.message });
+        }
     },
 
     calculateAge: async (req, res) => {
