@@ -26,7 +26,14 @@ const initializeSocket = (server) => {
             }
 
             userSockets[userId].push(socket.id);
+            socket.userId = userId; // Set userId on socket
             console.log('User joined:', userId, 'socket:', socket.id);
+        });
+
+        // Join room for conversation
+        socket.on('join_room', (conversationId) => {
+            socket.join(conversationId);
+            console.log('User joined room:', conversationId);
         });
 
         // Listen for new messages
@@ -46,21 +53,10 @@ const initializeSocket = (server) => {
                 // Populate sender details
                 const populatedMessage = await Message.findById(message._id).populate('senderId', 'username profilePic');
 
-                // Send to recipient
-                const recipientSockets = userSockets[recipientId.toString()] || [];
-                recipientSockets.forEach(id => {
-                    io.to(id).emit('receive_message', {
-                        conversationId,
-                        message: populatedMessage
-                    });
-                });
-
-                const senderSockets = userSockets[senderId] || [];
-                senderSockets.forEach(id => {
-                    io.to(id).emit('receive_message', {
-                        conversationId,
-                        message: populatedMessage
-                    });
+                // Send to conversation room
+                io.to(conversationId).emit('receive_message', {
+                    conversationId,
+                    message: populatedMessage
                 });
             } catch (error) {
                 socket.emit('error', { message: error.message });

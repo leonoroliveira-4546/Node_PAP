@@ -42,12 +42,10 @@ app.use(ChatRoute);
 
 mongoose.connect(mongodb_url)
   .then(result => {
-    // Initialize socket.io
-    initializeSocket(server);
-    
     server.listen(8001, () => {
       console.log('Servidor rodando na porta 8001...')
     })
+    initializeSocket(server);
   })
   .catch(error => {
     console.log('Erro ao conectar com MongoDB:', error)
