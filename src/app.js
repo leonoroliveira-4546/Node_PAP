@@ -11,6 +11,16 @@ var mongodb_url = "mongodb+srv://leonormmoliveira:dbUserPassword@pap.wkyhqax.mon
 
 const app = express();
 const server = http.createServer(app);
+
+app.use((req, res, next) => {
+  res.setHeader(
+    "Cross-Origin-Opener-Policy",
+    "same-origin-allow-popups"
+  );
+
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -32,6 +42,7 @@ const AuthRoute = require("./routes/AuthRoute");
 const DojosRoute = require("./routes/DojosRoute");
 const ComunidadeRoute = require("./routes/ComunidadeRoute");
 const ChatRoute = require("./routes/ChatRoute");
+const YoutubeRoute = require("./routes/YoutubeApi/youtube");
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -39,6 +50,7 @@ app.use(AuthRoute);
 app.use(DojosRoute);
 app.use(ComunidadeRoute);
 app.use(ChatRoute);
+app.use("/youtube", YoutubeRoute);
 
 mongoose.connect(mongodb_url)
   .then(result => {

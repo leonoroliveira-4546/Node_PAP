@@ -31,7 +31,7 @@ async function getChannelId(handle) {
 router.get("/fnk/videos", async (req, res) => {
 
   try {
-
+    const maxResults = req.query.maxResults || 10;
     const channelId = await getChannelId("FNK Portugal");
 
     const response = await axios.get(
@@ -41,7 +41,7 @@ router.get("/fnk/videos", async (req, res) => {
           key: API_KEY,
           part: "snippet",
           channelId: channelId,
-          maxResults: 10,
+          maxResults: maxResults,
           order: "date",
           type: "video"
         }
@@ -73,7 +73,7 @@ router.get("/fnk/videos", async (req, res) => {
 router.get("/fnk/lives", async (req, res) => {
 
   try {
-
+    const maxResults = req.query.maxResults || 5;
     const channelId = await getChannelId("FNK Portugal");
 
     const response = await axios.get(
@@ -85,7 +85,7 @@ router.get("/fnk/lives", async (req, res) => {
           channelId: channelId,
           eventType: "live",
           type: "video",
-          maxResults: 5
+          maxResults: maxResults
         }
       }
     );
