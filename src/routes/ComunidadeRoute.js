@@ -7,6 +7,10 @@ const { upload } = require("../middlewares/upload");
 
 // NEWS
 app.get('/news', verifyToken, ComunidadeController.getNews);
+app.post('/news', verifyToken, upload.single("file"), ComunidadeController.createNews);
+app.post('/news/:id/like', verifyToken, ComunidadeController.likeNews);
+app.post('/news/:id/comments', verifyToken, ComunidadeController.addCommentToNews);
+app.delete('/news/comments/:commentId', verifyToken, ComunidadeController.removeCommentFromNews);
 
 // POSTS
 app.get('/comunidade', verifyToken, ComunidadeController.getPosts);
@@ -14,7 +18,6 @@ app.post('/posts', verifyToken, upload.single("file"), ComunidadeController.crea
 app.get('/posts/:id', verifyToken, ComunidadeController.getPostDetails);
 app.put('/posts/:id', verifyToken, upload.single("file"), ComunidadeController.updatePost);
 app.delete('/posts/:id', verifyToken, ComunidadeController.deletePost);
-app.post('/posts/:id/like', verifyToken, ComunidadeController.likePost);
 
 // COMMENTS
 app.post('/posts/:id/comments', verifyToken, ComunidadeController.addComment);

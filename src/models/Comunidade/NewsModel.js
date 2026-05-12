@@ -9,6 +9,25 @@ const NewsModel = new mongoose.Schema({
         type: String,
         required: true
     },
+    author: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    imagens: [{
+        type: String
+    }],
+    link: {
+        type: String
+    },
+    likes: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    comments: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Comment'
+    }],
     type: {
         type: String,
         enum: ['news', 'tournament'],

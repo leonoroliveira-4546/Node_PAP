@@ -7,34 +7,127 @@ const mongoose = require('mongoose');
 const ComunidadeController = {
     getNews: async (req, res) => {
         try {
-            const news = await News.find().sort({ createdAt: -1 });
+            const news = await News.find().sort({ createdAt: -1 })
+                .populate('author', 'username profilePic')
+                .populate({
+                    path: 'comments',
+                    populate: {
+                        path: 'author',
+                        select: 'username profilePic'
+                    }
+                });
             res.json({ success: true, data: news });
         } catch (err) {
             res.status(500).json({ success: false, message: 'Erro ao buscar notícias.' });
         }
     },
 
-    likePost: async (req, res) => {
+    createNews: async (req, res) => {
         try {
-            const postId = req.params.id;
+            const userType = req.user?.type;
+            if (userType !== 'admin') {
+                return res.status(403).json({ success: false, message: 'Apenas administradores podem criar notícias.' });
+            }
+
+            const { title, content, link } = req.body;
+            if (!title || !content) {
+                return res.status(400).json({ success: false, message: 'Título e conteúdo são obrigatórios.' });
+            }
+
+            let imagens = [];
+            if (req.file) {
+                const uploaded = await uploadToCloudinary(req.file.buffer);
+                imagens.push(uploaded.url);
+            }
+
+            const newsItem = new News({
+                title,
+                content,
+                link,
+                author: req.user._id,
+                imagens
+            });
+            await newsItem.save();
+
+            const populatedNews = await News.findById(newsItem._id)
+                .populate('author', 'username profilePic');
+
+            res.status(201).json({ success: true, data: populatedNews });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Erro ao criar notícia.' });
+        }
+    },
+
+    likeNews: async (req, res) => {
+        try {
+            const newsId = req.params.id;
             const userId = req.user._id;
 
-            const post = await Comunidade.findById(postId);
-            if (!post) {
-                return res.status(404).json({ success: false, message: 'Post não encontrado.' });
+            const newsItem = await News.findById(newsId);
+            if (!newsItem) {
+                return res.status(404).json({ success: false, message: 'Notícia não encontrada.' });
             }
 
-            const isLiked = post.likes.includes(userId);
+            const isLiked = newsItem.likes.includes(userId);
             if (isLiked) {
-                post.likes.pull(userId);
+                newsItem.likes.pull(userId);
             } else {
-                post.likes.push(userId);
+                newsItem.likes.push(userId);
             }
 
-            await post.save();
-            res.json({ success: true, likes: post.likes.length });
+            await newsItem.save();
+            res.json({ success: true, likes: newsItem.likes.length });
         } catch (err) {
-            res.status(500).json({ success: false, message: 'Erro ao curtir post.' });
+            res.status(500).json({ success: false, message: 'Erro ao curtir notícia.' });
+        }
+    },
+
+    addCommentToNews: async (req, res) => {
+        try {
+            const { message } = req.body;
+            const newsId = req.params.id;
+            const userId = req.user?._id;
+
+            if (!message) {
+                return res.status(400).json({ success: false, message: 'Mensagem obrigatória.' });
+            }
+
+            if (!userId) {
+                return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
+            }
+
+            const newComment = new Comentario({
+                message,
+                author: userId
+            });
+            await newComment.save();
+
+            await News.findByIdAndUpdate(newsId, {
+                $push: { comments: newComment._id }
+            });
+
+            const populatedComment = await Comentario.findById(newComment._id)
+                .populate('author', 'username profilePic');
+
+            res.json({ success: true, comment: populatedComment });
+        } catch (err) {
+            res.status(500).json({ success: false, message: 'Erro ao adicionar comentário.' });
+        }
+    },
+
+    removeCommentFromNews: async (req, res) => {
+        try {
+            const commentId = req.params.commentId;
+            const deleted = await Comentario.findByIdAndDelete(commentId);
+
+            if (!deleted) {
+                return res.status(404).json({ success: false, message: 'Comentário não encontrado.' });
+            }
+
+            res.status(200).json({ success: true, message: 'Comentário removido com sucesso.' });
+        } catch (error) {
+            res.status(500).json({ success: false, message: 'Erro ao remover comentário.' });
         }
     },
 
