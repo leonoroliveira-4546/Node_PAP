@@ -48,12 +48,31 @@ router.get("/fnk/videos", async (req, res) => {
       }
     );
 
+    const videoIds = response.data.items.map(video => video.id.videoId).filter(Boolean);
+
+    const detailsResponse = await axios.get(
+      "https://www.googleapis.com/youtube/v3/videos",
+      {
+        params: {
+          key: API_KEY,
+          part: "contentDetails",
+          id: videoIds.join(",")
+        }
+      }
+    );
+
+    const durationById = detailsResponse.data.items.reduce((acc, item) => {
+      acc[item.id] = item.contentDetails.duration;
+      return acc;
+    }, {});
+
     const videos = response.data.items.map(video => ({
       videoId: video.id.videoId,
       title: video.snippet.title,
       description: video.snippet.description,
       thumbnail: video.snippet.thumbnails.high.url,
-      publishedAt: video.snippet.publishedAt
+      publishedAt: video.snippet.publishedAt,
+      duration: durationById[video.id.videoId] || 'PT0S'
     }));
 
     res.json(videos);
@@ -90,12 +109,31 @@ router.get("/fnk/lives", async (req, res) => {
       }
     );
 
+    const videoIds = response.data.items.map(video => video.id.videoId).filter(Boolean);
+
+    const detailsResponse = await axios.get(
+      "https://www.googleapis.com/youtube/v3/videos",
+      {
+        params: {
+          key: API_KEY,
+          part: "contentDetails",
+          id: videoIds.join(",")
+        }
+      }
+    );
+
+    const durationById = detailsResponse.data.items.reduce((acc, item) => {
+      acc[item.id] = item.contentDetails.duration;
+      return acc;
+    }, {});
+
     const lives = response.data.items.map(video => ({
       videoId: video.id.videoId,
       title: video.snippet.title,
       description: video.snippet.description,
       thumbnail: video.snippet.thumbnails.high.url,
-      publishedAt: video.snippet.publishedAt
+      publishedAt: video.snippet.publishedAt,
+      duration: durationById[video.id.videoId] || 'PT0S'
     }));
 
     res.json(lives);
