@@ -5,6 +5,33 @@ const router = express.Router();
 
 const API_KEY = process.env.YOUTUBE_API_KEY;
 
+// Cache configuration
+const CACHE_DURATION = 24 * 60 * 60 * 1000;
+const cache = {
+  videos: { data: null, timestamp: null },
+  lives: { data: null, timestamp: null }
+};
+
+function isCacheValid(category) {
+  const cached = cache[category];
+  if (!cached.data || !cached.timestamp) return false;
+  return Date.now() - cached.timestamp < CACHE_DURATION;
+}
+
+function getFromCache(category) {
+  if (isCacheValid(category)) {
+    console.log(`Retornando ${category} do cache`);
+    return cache[category].data;
+  }
+  return null;
+}
+
+function setCache(category, data) {
+  cache[category] = {
+    data,
+    timestamp: Date.now()
+  };
+}
 
 // =========================
 // Buscar CHANNEL ID
@@ -31,6 +58,11 @@ async function getChannelId(handle) {
 router.get("/fnk/videos", async (req, res) => {
 
   try {
+    const cached = getFromCache('videos');
+    if (cached) {
+      return res.json(cached);
+    }
+
     const maxResults = req.query.maxResults || 10;
     const channelId = await getChannelId("FNK Portugal");
 
@@ -75,6 +107,7 @@ router.get("/fnk/videos", async (req, res) => {
       duration: durationById[video.id.videoId] || 'PT0S'
     }));
 
+    setCache('videos', videos);
     res.json(videos);
 
   } catch (error) {
@@ -92,6 +125,11 @@ router.get("/fnk/videos", async (req, res) => {
 router.get("/fnk/lives", async (req, res) => {
 
   try {
+    const cached = getFromCache('lives');
+    if (cached) {
+      return res.json(cached);
+    }
+
     const maxResults = req.query.maxResults || 5;
     const channelId = await getChannelId("FNK Portugal");
 
@@ -136,6 +174,7 @@ router.get("/fnk/lives", async (req, res) => {
       duration: durationById[video.id.videoId] || 'PT0S'
     }));
 
+    setCache('lives', lives);
     res.json(lives);
 
   } catch (error) {
