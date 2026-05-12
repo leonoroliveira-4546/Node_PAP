@@ -25,9 +25,9 @@ const ComunidadeController = {
     createNews: async (req, res) => {
         try {
             const userType = req.user?.type;
-            if (userType !== 'admin') {
-                return res.status(403).json({ success: false, message: 'Apenas administradores podem criar notícias.' });
-            }
+            // if (userType !== 'admin') {
+            //     return res.status(403).json({ success: false, message: 'Apenas administradores podem criar notícias.' });
+            // }
 
             const { title, content, link } = req.body;
             if (!title || !content) {
@@ -36,7 +36,9 @@ const ComunidadeController = {
 
             let imagens = [];
             if (req.file) {
+                console.log('Uploading image...');
                 const uploaded = await uploadToCloudinary(req.file.buffer);
+                console.log('Uploaded:', uploaded);
                 imagens.push(uploaded.url);
             }
 

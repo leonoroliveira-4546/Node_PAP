@@ -12,13 +12,19 @@ const uploadToCloudinary = (fileBuffer) => {
     cloudinary.uploader.upload_stream(
       { folder: "posts" },
       (error, result) => {
-        if (error) return reject(error);
+        if (error) {
+          console.log("CLOUDINARY ERROR:", error);
+          return reject(error);
+        }
+        console.log("RESULT:", result);
         resolve({
             url: result.secure_url,
             public_id: result.public_id
         });
       }
     ).end(fileBuffer);
+
+    console.log("DEPOIS END");
   });
 };
 
