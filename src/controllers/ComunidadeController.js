@@ -1,142 +1,18 @@
 const Comunidade = require('../models/Comunidade/ComunidadeModel');
 const Comentario = require('../models/Comunidade/CommentsModel');
-const News = require('../models/Comunidade/NewsModel');
 const { uploadToCloudinary } = require('../middlewares/upload');
 const mongoose = require('mongoose');
 
 const ComunidadeController = {
-    getNews: async (req, res) => {
+    getContents: async (req, res) => {
         try {
-            const news = await News.find().sort({ createdAt: -1 })
-                .populate('author', 'username profilePic')
-                .populate({
-                    path: 'comments',
-                    populate: {
-                        path: 'author',
-                        select: 'username profilePic'
-                    }
-                });
-            res.json({ success: true, data: news });
-        } catch (err) {
-            res.status(500).json({ success: false, message: 'Erro ao buscar notícias.' });
-        }
-    },
+            const {type, community = 'geral'} = req.query;
+            const filter = {};
 
-    createNews: async (req, res) => {
-        try {
-            const userType = req.user?.type;
-            // if (userType !== 'admin') {
-            //     return res.status(403).json({ success: false, message: 'Apenas administradores podem criar notícias.' });
-            // }
+            if (type) filter.type = type;
+            if (community) filter.community = community;
 
-            const { title, content, link } = req.body;
-            if (!title || !content) {
-                return res.status(400).json({ success: false, message: 'Título e conteúdo são obrigatórios.' });
-            }
-
-            let imagens = [];
-            if (req.file) {
-                console.log('Uploading image...');
-                const uploaded = await uploadToCloudinary(req.file.buffer);
-                console.log('Uploaded:', uploaded);
-                imagens.push(uploaded.url);
-            }
-
-            const newsItem = new News({
-                title,
-                content,
-                link,
-                author: req.user._id,
-                imagens
-            });
-            await newsItem.save();
-
-            const populatedNews = await News.findById(newsItem._id)
-                .populate('author', 'username profilePic');
-
-            res.status(201).json({ success: true, data: populatedNews });
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ success: false, message: 'Erro ao criar notícia.' });
-        }
-    },
-
-    likeNews: async (req, res) => {
-        try {
-            const newsId = req.params.id;
-            const userId = req.user._id;
-
-            const newsItem = await News.findById(newsId);
-            if (!newsItem) {
-                return res.status(404).json({ success: false, message: 'Notícia não encontrada.' });
-            }
-
-            const isLiked = newsItem.likes.includes(userId);
-            if (isLiked) {
-                newsItem.likes.pull(userId);
-            } else {
-                newsItem.likes.push(userId);
-            }
-
-            await newsItem.save();
-            res.json({ success: true, likes: newsItem.likes.length });
-        } catch (err) {
-            res.status(500).json({ success: false, message: 'Erro ao curtir notícia.' });
-        }
-    },
-
-    addCommentToNews: async (req, res) => {
-        try {
-            const { message } = req.body;
-            const newsId = req.params.id;
-            const userId = req.user?._id;
-
-            if (!message) {
-                return res.status(400).json({ success: false, message: 'Mensagem obrigatória.' });
-            }
-
-            if (!userId) {
-                return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
-            }
-
-            const newComment = new Comentario({
-                message,
-                author: userId
-            });
-            await newComment.save();
-
-            await News.findByIdAndUpdate(newsId, {
-                $push: { comments: newComment._id }
-            });
-
-            const populatedComment = await Comentario.findById(newComment._id)
-                .populate('author', 'username profilePic');
-
-            res.json({ success: true, comment: populatedComment });
-        } catch (err) {
-            res.status(500).json({ success: false, message: 'Erro ao adicionar comentário.' });
-        }
-    },
-
-    removeCommentFromNews: async (req, res) => {
-        try {
-            const commentId = req.params.commentId;
-            const deleted = await Comentario.findByIdAndDelete(commentId);
-
-            if (!deleted) {
-                return res.status(404).json({ success: false, message: 'Comentário não encontrado.' });
-            }
-
-            res.status(200).json({ success: true, message: 'Comentário removido com sucesso.' });
-        } catch (error) {
-            res.status(500).json({ success: false, message: 'Erro ao remover comentário.' });
-        }
-    },
-
-    getPosts: async (req, res) => {
-        try {
-            const { community = 'geral' } = req.query;
-            const posts = await Comunidade.find({ community })
+            const contents = await Content.find(filter)
                 .populate('author', 'username profilePic')
                 .populate({
                     path: 'comments',
@@ -147,51 +23,22 @@ const ComunidadeController = {
                 })
                 .sort({ createdAt: -1 });
 
-            res.json({ success: true, data: posts });
+            res.json({ success: true, data: contents });
         } catch (err) {
-            res.status(500).json({ success: false, message: 'Erro ao buscar posts.' });
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Erro ao buscar conteúdos.' });
         }
     },
 
-    createPost: async (req, res) => {
+    getContentDetails: async (req, res) => {
         try {
-            let { title, message, community = 'geral' } = req.body;
-            const userId = req.user._id;
+            const { id } = req.params;
 
-            if (!userId) {
-                return res.status(400).json({ success: false, message: 'Usuário obrigatório' });
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                return res.status(400).json({ success: false, message: 'ID inválido.' });
             }
 
-            let imagens = [];
-            if (req.file) {
-                const uploaded = await uploadToCloudinary(req.file.buffer);
-                imagens.push(uploaded.url);
-            }
-
-            const newPost = new Comunidade({
-                title,
-                message,
-                author: userId,
-                imagens: imagens,
-                community
-            });
-            await newPost.save();
-
-            const populatedPost = await Comunidade.findById(newPost._id)
-                .populate('author', 'username');
-
-            res.json({ success: true, post: populatedPost });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ success: false, message: 'Erro ao salvar post.' });
-        }
-    },
-
-    getPostDetails: async (req, res) => {
-        const { id } = req.params;
-
-        try {
-            const post = await Comunidade.findById(id)
+            const content = await Content.findById(id)
                 .populate('author', 'username profilePic')
                 .populate({
                     path: 'comments',
@@ -201,124 +48,126 @@ const ComunidadeController = {
                     }
                 });
 
-            if (!post) {
-                return res.status(404).json({ success: false, error: 'Post não encontrado.' });
+            if (!content) {
+                return res.status(404).json({ success: false, message: 'Conteúdo não encontrado.' });
             }
 
-            res.json({ success: true, post });
-        } catch (error) {
-            res.status(500).json({ success: false, error: 'Erro no servidor.' });
-        }
-    },
-
-    deletePost: async (req, res) => {
-        const postId = req.params.id;
-
-        if (!postId) {
-            return res.status(400).json({ success: false, message: 'ID não fornecido.' });
-        }
-
-        try {
-
-            const result = await Comunidade.findByIdAndDelete(postId);
-            if (!result) {
-                return res.status(404).json({ success: false, message: 'Post não encontrada.' });
-            }
-
-            res.json({ success: true });
+            res.json({ success: true, content });
         } catch (err) {
-            res.status(500).json({ success: false, message: 'Erro ao excluir a post.' });
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Erro ao buscar conteúdo.' });
         }
     },
 
-    updatePost: async (req, res) => {
-        const { title, message, imagens } = req.body;
-        const postId = req.params.id;
-
-        if (!mongoose.Types.ObjectId.isValid(postId)) {
-            return res.status(400).json({ success: false, message: 'ID inválido.' });
-        }
-
+    createContent: async (req, res) => {
         try {
-            const post = await Comunidade.findById(postId);
+            const { title, message, content, link, type = 'post', community = 'geral' } = req.body;
+            const userId = req.user?._id;
 
-            if (!post) {
-                return res.status(404).json({ success: false, message: 'Post não encontrado.' });
+            if (!userId) {
+                return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
+            }
+            if (!title) {
+                return res.status(400).json({ success: false, message: 'Título obrigatório.' });
+            }
+            if ((type === 'news' || type === 'tournament') && req.user.type !== 'admin') {
+                return res.status(403).json({ success: false, message: 'Apenas administradores podem criar notícias.'});
             }
 
-            post.title = title || post.title;
-            post.message = message || post.message;
-
-            if (imagens) {
-                post.imagens = typeof imagens === 'string' ? [imagens] : imagens;
-            }
-
+            let imagens = [];
             if (req.file) {
                 const uploaded = await uploadToCloudinary(req.file.buffer);
-                post.imagens = [...post.imagens, uploaded.url];
+                imagens.push(uploaded.url);
             }
 
-            await post.save();
+            const newContent = new Content({
+                title,
+                message,
+                content,
+                link,
+                type,
+                author: userId,
+                imagens,
+                community
+            });
+            await newContent.save();
 
-            res.json({ success: true, post });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ success: false, message: 'Erro ao atualizar post.' });
+            const populatedContent = await Content.findById(newContent._id)
+                .populate('author', 'username profilePic');
+
+            res.status(201).json({ success: true, content: populatedContent });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Erro ao criar conteúdo.' });
+        }
+    },
+
+    likeContent: async (req, res) => {
+        try {
+            const contentId = req.params.id;
+            const userId = req.user._id;
+
+            if (!mongoose.Types.ObjectId.isValid(contentId)) {
+                return res.status(400).json({ success: false, message: 'ID inválido.' });
+            }
+
+            const content = await Content.findById(contentId);
+            if (!content) {
+                return res.status(404).json({ success: false, message: 'Conteúdo não encontrado.'});
+            }
+
+            const isLiked = content.likes.includes(userId);
+            if (isLiked) {
+                content.likes.pull(userId);
+            } else {
+                content.likes.push(userId);
+            }
+
+            await content.save();
+
+            res.json({ success: true, likes: content.likes.length });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Erro ao curtir conteúdo.' });
         }
     },
 
     addComment: async (req, res) => {
         try {
             const { message, parentCommentId } = req.body;
-            const postId = req.params.id;
+            const contentId = req.params.id;
             const userId = req.user?._id;
 
+            if (!mongoose.Types.ObjectId.isValid(contentId)) {
+                return res.status(400).json({ success: false, message: 'ID inválido.' });
+            }
             if (!message) {
                 return res.status(400).json({ success: false, message: 'Mensagem obrigatória.' });
             }
-
             if (!userId) {
                 return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
             }
 
             const newComment = new Comentario({
                 message,
-                post: postId,
+                post: contentId,
                 author: userId
             });
             await newComment.save();
 
             if (parentCommentId) {
-                await Comentario.findByIdAndUpdate(parentCommentId, {
-                    $push: { replies: newComment._id }
-                });
+                await Comentario.findByIdAndUpdate(parentCommentId, { $push: { replies: newComment._id } });
             } else {
-                await Comunidade.findByIdAndUpdate(postId, {
-                    $push: { comments: newComment._id }
-                });
+                await Content.findByIdAndUpdate(contentId, { $push: { comments: newComment._id } });
             }
 
             const populatedComment = await Comentario.findById(newComment._id)
-                .populate('author', 'username profilePic')
+                .populate('author', 'username profilePic');
 
             res.json({ success: true, comment: populatedComment });
         } catch (err) {
-            res.status(500).json({ success: false, message: 'Erro ao adicionar o comentário.' });
-        }
-    },
-
-    removeComment: async (req, res) => {
-        try {
-            const commentId = req.params.id;
-            const deleted = await Comentario.findByIdAndDelete(commentId);
-
-            if (!deleted) {
-                return res.status(404).json({ success: false, message: 'Comentário não encontrado.' });
-            }
-
-            res.status(200).json({ success: true, message: 'Comentário removido com sucesso.' });
-        } catch (error) {
-            res.status(500).json({ success: false, message: 'Erro ao remover comentário.' });
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Erro ao adicionar comentário.' });
         }
     },
 
@@ -334,12 +183,101 @@ const ComunidadeController = {
             ).populate('author', 'username profilePic');
 
             if (!updated) {
+                return res.status(404).json({ success: false, message: 'Comentário não encontrado.'});
+            }
+
+            res.json({ success: true, updated });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Erro ao editar comentário.' });
+        }
+    },
+
+    removeComment: async (req, res) => {
+        try {
+            const commentId = req.params.id;
+
+            const deleted = await Comentario.findByIdAndDelete(commentId);
+            if (!deleted) {
                 return res.status(404).json({ success: false, message: 'Comentário não encontrado.' });
             }
 
-            res.status(200).json({ success: true, updated });
-        } catch (error) {
-            res.status(500).json({ success: false, message: 'Erro ao editar comentário.' });
+            res.json({ success: true, message: 'Comentário removido com sucesso.' });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Erro ao remover comentário.' });
+        }
+    },
+
+    updateContent: async (req, res) => {
+        try {
+            const contentId = req.params.id;
+
+            if (!mongoose.Types.ObjectId.isValid(contentId)) {
+                return res.status(400).json({ success: false, message: 'ID inválido.' });
+            }
+
+            const {
+                title,
+                message,
+                content,
+                imagens,
+                link,
+                isImportant
+            } = req.body;
+
+            const existingContent = await Content.findById(contentId);
+            if (!existingContent) {
+                return res.status(404).json({ success: false, message: 'Conteúdo não encontrado.' });
+            }
+
+            existingContent.title = title || existingContent.title;
+            existingContent.message = message || existingContent.message;
+            existingContent.content = content || existingContent.content;
+            existingContent.link = link || existingContent.link;
+
+            if (typeof isImportant !== 'undefined') {
+                existingContent.isImportant = isImportant;
+            }
+
+            if (imagens) {
+                existingContent.imagens =
+                    typeof imagens === 'string'
+                        ? [imagens]
+                        : imagens;
+            }
+
+            if (req.file) {
+                const uploaded = await uploadToCloudinary(req.file.buffer);
+                existingContent.imagens.push(uploaded.url);
+            }
+
+            await existingContent.save();
+
+            res.json({ success: true, content: existingContent });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Erro ao atualizar conteúdo.' });
+        }
+    },
+
+    deleteContent: async (req, res) => {
+        try {
+            const contentId = req.params.id;
+
+            if (!mongoose.Types.ObjectId.isValid(contentId)) {
+                return res.status(400).json({ success: false, message: 'ID inválido.' });
+            }
+
+            const deleted = await Content.findByIdAndDelete(contentId);
+            if (!deleted) {
+                return res.status(404).json({ success: false, message: 'Conteúdo não encontrado.' });
+            }
+
+            res.json({ success: true, message: 'Conteúdo removido com sucesso.' });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Erro ao remover conteúdo.'});
         }
     }
 };
