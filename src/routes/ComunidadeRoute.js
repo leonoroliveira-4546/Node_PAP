@@ -5,22 +5,17 @@ const ComunidadeController = require('../controllers/ComunidadeController');
 const verifyToken = require("../middlewares/is_auth");
 const { upload } = require("../middlewares/upload");
 
-// NEWS
-app.get('/news', verifyToken, ComunidadeController.getNews);
-app.post('/news', verifyToken, upload.single("file"), ComunidadeController.createNews);
-app.post('/news/:id/like', verifyToken, ComunidadeController.likeNews);
-app.post('/news/:id/comments', verifyToken, ComunidadeController.addCommentToNews);
-app.delete('/news/comments/:commentId', verifyToken, ComunidadeController.removeCommentFromNews);
+// CONTENTS
+app.get('/contents', verifyToken, ComunidadeController.getContents);
+app.get('/contents/:id', verifyToken, ComunidadeController.getContentDetails);
+app.post('/contents', verifyToken, upload.single("file"), ComunidadeController.createContent);
+app.put('/contents/:id', verifyToken, upload.single("file"), ComunidadeController.updateContent);
+app.delete('/contents/:id', verifyToken, ComunidadeController.deleteContent);
 
-// POSTS
-app.get('/comunidade', verifyToken, ComunidadeController.getPosts);
-app.post('/posts', verifyToken, upload.single("file"), ComunidadeController.createPost);
-app.get('/posts/:id', verifyToken, ComunidadeController.getPostDetails);
-app.put('/posts/:id', verifyToken, upload.single("file"), ComunidadeController.updatePost);
-app.delete('/posts/:id', verifyToken, ComunidadeController.deletePost);
 
-// COMMENTS
-app.post('/posts/:id/comments', verifyToken, ComunidadeController.addComment);
+app.post('/contents/:id/like', verifyToken, ComunidadeController.likeContent);
+
+app.post('/contents/:id/comments', verifyToken, ComunidadeController.addComment);
 app.put('/comments/:id', verifyToken, ComunidadeController.editComment);
 app.delete('/comments/:id', verifyToken, ComunidadeController.removeComment);
 
