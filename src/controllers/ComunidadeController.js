@@ -9,10 +9,14 @@ const ComunidadeController = {
             const {type, community = 'geral'} = req.query;
             const filter = {};
 
-            if (type) filter.type = type;
-            if (community) filter.community = community;
+            if (type && type !== '' && type !== 'undefined') {
+                filter.type = type;
+            }
+            if (community && community !== '' && community !== 'undefined') {
+                filter.community = community;
+            }
 
-            const contents = await Content.find(filter)
+            const contents = await Comunidade.find(filter)
                 .populate('author', 'username profilePic')
                 .populate({
                     path: 'comments',
@@ -38,7 +42,7 @@ const ComunidadeController = {
                 return res.status(400).json({ success: false, message: 'ID inválido.' });
             }
 
-            const content = await Content.findById(id)
+            const content = await Comunidade.findById(id)
                 .populate('author', 'username profilePic')
                 .populate({
                     path: 'comments',
@@ -70,9 +74,9 @@ const ComunidadeController = {
             if (!title) {
                 return res.status(400).json({ success: false, message: 'Título obrigatório.' });
             }
-            if ((type === 'news' || type === 'tournament') && req.user.type !== 'admin') {
-                return res.status(403).json({ success: false, message: 'Apenas administradores podem criar notícias.'});
-            }
+            // if ((type === 'news' || type === 'tournament') && req.user.type !== 'admin') {
+            //     return res.status(403).json({ success: false, message: 'Apenas administradores podem criar notícias.'});
+            // }
 
             let imagens = [];
             if (req.file) {
@@ -80,7 +84,7 @@ const ComunidadeController = {
                 imagens.push(uploaded.url);
             }
 
-            const newContent = new Content({
+            const newContent = new Comunidade({
                 title,
                 message,
                 content,
@@ -92,7 +96,7 @@ const ComunidadeController = {
             });
             await newContent.save();
 
-            const populatedContent = await Content.findById(newContent._id)
+            const populatedContent = await Comunidade.findById(newContent._id)
                 .populate('author', 'username profilePic');
 
             res.status(201).json({ success: true, content: populatedContent });
@@ -111,7 +115,7 @@ const ComunidadeController = {
                 return res.status(400).json({ success: false, message: 'ID inválido.' });
             }
 
-            const content = await Content.findById(contentId);
+            const content = await Comunidade.findById(contentId);
             if (!content) {
                 return res.status(404).json({ success: false, message: 'Conteúdo não encontrado.'});
             }
@@ -158,7 +162,7 @@ const ComunidadeController = {
             if (parentCommentId) {
                 await Comentario.findByIdAndUpdate(parentCommentId, { $push: { replies: newComment._id } });
             } else {
-                await Content.findByIdAndUpdate(contentId, { $push: { comments: newComment._id } });
+                await Comunidade.findByIdAndUpdate(contentId, { $push: { comments: newComment._id } });
             }
 
             const populatedComment = await Comentario.findById(newComment._id)
@@ -226,7 +230,7 @@ const ComunidadeController = {
                 isImportant
             } = req.body;
 
-            const existingContent = await Content.findById(contentId);
+            const existingContent = await Comunidade.findById(contentId);
             if (!existingContent) {
                 return res.status(404).json({ success: false, message: 'Conteúdo não encontrado.' });
             }
@@ -269,7 +273,7 @@ const ComunidadeController = {
                 return res.status(400).json({ success: false, message: 'ID inválido.' });
             }
 
-            const deleted = await Content.findByIdAndDelete(contentId);
+            const deleted = await Comunidade.findByIdAndDelete(contentId);
             if (!deleted) {
                 return res.status(404).json({ success: false, message: 'Conteúdo não encontrado.' });
             }

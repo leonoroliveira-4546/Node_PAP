@@ -56,7 +56,6 @@ async function getChannelId(handle) {
 }
 
 router.get("/fnk/videos", async (req, res) => {
-
   try {
     const cached = getFromCache('videos');
     if (cached) {
@@ -81,7 +80,6 @@ router.get("/fnk/videos", async (req, res) => {
     );
 
     const videoIds = response.data.items.map(video => video.id.videoId).filter(Boolean);
-
     const detailsResponse = await axios.get(
       "https://www.googleapis.com/youtube/v3/videos",
       {
@@ -109,21 +107,12 @@ router.get("/fnk/videos", async (req, res) => {
 
     setCache('videos', videos);
     res.json(videos);
-
   } catch (error) {
-
-    console.log(error.response?.data || error.message);
-
-    res.status(500).json({
-      error: "Erro ao buscar vídeos"
-    });
-
+    res.status(500).json({error: "Erro ao buscar vídeos"});
   }
-
 });
 
 router.get("/fnk/lives", async (req, res) => {
-
   try {
     const cached = getFromCache('lives');
     if (cached) {
@@ -148,7 +137,6 @@ router.get("/fnk/lives", async (req, res) => {
     );
 
     const videoIds = response.data.items.map(video => video.id.videoId).filter(Boolean);
-
     const detailsResponse = await axios.get(
       "https://www.googleapis.com/youtube/v3/videos",
       {
@@ -176,15 +164,8 @@ router.get("/fnk/lives", async (req, res) => {
 
     setCache('lives', lives);
     res.json(lives);
-
   } catch (error) {
-
-    console.log(error.response?.data || error.message);
-
-    res.status(500).json({
-      error: "Erro ao buscar lives"
-    });
-
+    res.status(500).json({ error: "Erro ao buscar lives" });
   }
 
 });
