@@ -15,6 +15,14 @@ const UsersSchema = new mongoose.Schema({
       type: String,
       default: null
     },
+    belt: {
+      type: String,
+      default: 'Branca'
+    },
+    points: {
+      type: Number,
+      default: 0
+    },
     email: {
       type: String,
       unique: true,

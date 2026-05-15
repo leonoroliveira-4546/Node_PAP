@@ -8,9 +8,16 @@ const ComunidadeController = {
         try {
             const {type, community = 'geral'} = req.query;
             const filter = {};
+            const typeMap = {
+                posts: 'post',
+                post: 'post',
+                news: 'news',
+                tournament: 'tournament'
+            };
+            const requestedType = typeMap[type] || type;
 
-            if (type && type !== '' && type !== 'undefined') {
-                filter.type = type;
+            if (requestedType && requestedType !== '' && requestedType !== 'undefined') {
+                filter.type = requestedType;
             }
             if (community && community !== '' && community !== 'undefined') {
                 filter.community = community;

@@ -21,12 +21,27 @@ const initializeSocket = (server) => {
         socket.on('join', (userId) => {
             const id = userId.toString();
 
+            if (socket.userId && socket.userId.toString() === id) {
+                return;
+            }
+
+            if (socket.userId && socket.userId.toString() !== id) {
+                const oldId = socket.userId.toString();
+                userSockets[oldId] = userSockets[oldId]?.filter(sid => sid !== socket.id) || [];
+                if (userSockets[oldId].length === 0) {
+                    delete userSockets[oldId];
+                }
+            }
+
             if (!userSockets[id]) {
                 userSockets[id] = [];
             }
 
-            userSockets[userId].push(socket.id);
-            socket.userId = userId; // Set userId on socket
+            if (!userSockets[id].includes(socket.id)) {
+                userSockets[id].push(socket.id);
+            }
+
+            socket.userId = id;
             console.log('User joined:', userId, 'socket:', socket.id);
         });
 
