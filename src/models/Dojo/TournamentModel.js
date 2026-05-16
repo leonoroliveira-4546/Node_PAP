@@ -23,5 +23,4 @@ const TournamentModel = new mongoose.Schema({
   }
 });
 
-const Tournament = mongoose.model("tournaments", TournamentModel);
-module.exports = Tournament;
+module.exports = mongoose.models.dojo_tournaments || mongoose.model("dojo_tournaments", TournamentModel);

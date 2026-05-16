@@ -10,6 +10,7 @@ const admin = require("../config/firebase");
 
 const normalizeType = (type) => {
     if (type === 'atleta') return 'athlete';
+    if (type === 'praticinador') return 'praticinador';
     return type;
 };
 
@@ -179,9 +180,22 @@ const AuthController = {
             }
 
             const { username, name, belt } = req.body;
-            if (username) user.username = username.trim();
-            if (name) user.name = name.trim();
-            if (belt) user.belt = belt;
+
+            if (username && username.trim() !== user.username) {
+                const existingUser = await Users.findOne({ username: username.trim() });
+                if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+                    return res.status(400).json({ success: false, message: 'Nome de usuário já em uso.' });
+                }
+                user.username = username.trim();
+            }
+
+            if (name) {
+                user.name = name.trim();
+            }
+
+            if (belt) {
+                user.belt = belt;
+            }
 
             if (req.file) {
                 let buffer = req.file.buffer;
@@ -191,7 +205,9 @@ const AuthController = {
 
                 if (buffer) {
                     const uploaded = await uploadToCloudinary(buffer);
-                    user.profilePic = uploaded.url;
+                    if (uploaded && uploaded.url) {
+                        user.profilePic = uploaded.url;
+                    }
                 }
             }
 
@@ -244,15 +260,24 @@ const AuthController = {
                 dojoId: parent.dojoId
             })));
 
+            const athleteUserIds = new Set(athleteUsers.map(user => user._id.toString()));
+            const dedupedEmbeddedChildren = embeddedChildren.filter(child => !athleteUserIds.has(child._id));
+
             const combinedUsers = [
                 ...athleteUsers.map(user => ({
                     ...user,
                     type: normalizeType(user.type)
                 })),
-                ...embeddedChildren
+                ...dedupedEmbeddedChildren
             ];
 
-            const sortedRanking = combinedUsers.sort((a, b) => {
+            const uniqueUsersMap = new Map();
+            combinedUsers.forEach(user => {
+                uniqueUsersMap.set(String(user._id), user);
+            });
+            const uniqueCombinedUsers = Array.from(uniqueUsersMap.values());
+
+            const sortedRanking = uniqueCombinedUsers.sort((a, b) => {
                 if ((b.points || 0) !== (a.points || 0)) {
                     return (b.points || 0) - (a.points || 0);
                 }

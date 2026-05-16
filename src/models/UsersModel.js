@@ -35,7 +35,7 @@ const UsersSchema = new mongoose.Schema({
     },
     type: {
       type: String,
-      enum: ["athlete", "responsavel", "sensei", "admin"],
+      enum: ["athlete", "responsavel", "sensei", "admin", "praticinador"],
       required: true
     },
     birthDate: {
@@ -51,11 +51,11 @@ const UsersSchema = new mongoose.Schema({
     },
     childrens: [{
       _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
-      username: { type: String, required: true},
-      birthDate: { type: Date, required: true},
+      username: { type: String, required: true },
+      birthDate: { type: Date },
       absences: [{
-        month: { type: String, required: true },
-        count: { type: Number, required: true },
+        month: { type: String, default: '' },
+        count: { type: Number, default: 0 },
         reason: { type: String, enum: ["disease", "other"], default: "other" }
       }]
     }],
@@ -65,8 +65,8 @@ const UsersSchema = new mongoose.Schema({
       default: null
     },
     absences: [{
-      month: { type: String, required: true },
-      count: { type: Number, required: true },
+      month: { type: String, default: '' },
+      count: { type: Number, default: 0 },
       reason: { type: String, enum: ["disease", "other"], default: "other" }
     }],
     status: {
