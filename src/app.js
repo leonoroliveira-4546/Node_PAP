@@ -54,7 +54,7 @@ app.use("/youtube", YoutubeRoute);
 
 mongoose.connect(mongodb_url)
   .then(result => {
-    server.listen(8002, () => {
+    server.listen(8001, () => {
       console.log('Servidor rodando na porta 8001...')
     })
     initializeSocket(server);
