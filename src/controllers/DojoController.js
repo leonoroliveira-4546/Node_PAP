@@ -381,11 +381,11 @@ const DojoController = {
     updateTournament: async (req, res) => {
         try {
             const { tournamentId } = req.params;
-            const { name, date, location, participants } = req.body;
+            const { name, date, location } = req.body;
 
             const tournament = await Tournament.findByIdAndUpdate(
                 tournamentId,
-                { name, date, location, participants },
+                { name, date, location },
                 { new: true }
             );
 
