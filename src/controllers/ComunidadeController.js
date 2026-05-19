@@ -72,7 +72,7 @@ const ComunidadeController = {
 
     createContent: async (req, res) => {
         try {
-            const { title, message, content, link, type = 'post', community = 'geral' } = req.body;
+            const { title, message, content, link, type = 'post', community = 'geral', attachments, poll } = req.body;
             const userId = req.user?._id;
 
             if (!userId) {
@@ -81,14 +81,36 @@ const ComunidadeController = {
             if (!title) {
                 return res.status(400).json({ success: false, message: 'Título obrigatório.' });
             }
-            // if ((type === 'news' || type === 'tournament') && req.user.type !== 'admin') {
-            //     return res.status(403).json({ success: false, message: 'Apenas administradores podem criar notícias.'});
-            // }
 
             let imagens = [];
             if (req.file) {
                 const uploaded = await uploadToCloudinary(req.file.buffer);
                 imagens.push(uploaded.url);
+            }
+
+            let attachmentsData = [];
+            if (attachments) {
+                try {
+                    attachmentsData = typeof attachments === 'string' ? JSON.parse(attachments) : attachments;
+                } catch (parseErr) {
+                    attachmentsData = [];
+                }
+            }
+
+            let pollData = null;
+            if (poll) {
+                try {
+                    const parsedPoll = typeof poll === 'string' ? JSON.parse(poll) : poll;
+                    if (parsedPoll.question && Array.isArray(parsedPoll.options)) {
+                        pollData = {
+                            question: parsedPoll.question,
+                            options: parsedPoll.options.map((option) => ({ text: option.text || option, votes: option.votes || [] })),
+                            createdBy: userId
+                        };
+                    }
+                } catch (parseErr) {
+                    pollData = null;
+                }
             }
 
             const newContent = new Comunidade({
@@ -99,7 +121,9 @@ const ComunidadeController = {
                 type,
                 author: userId,
                 imagens,
-                community
+                community,
+                attachments: attachmentsData,
+                poll: pollData
             });
             await newContent.save();
 
@@ -140,6 +164,45 @@ const ComunidadeController = {
         } catch (err) {
             console.error(err);
             res.status(500).json({ success: false, message: 'Erro ao curtir conteúdo.' });
+        }
+    },
+
+    votePoll: async (req, res) => {
+        try {
+            const contentId = req.params.id;
+            const optionIndex = Number(req.params.optionIndex);
+            const userId = req.user._id;
+
+            if (!mongoose.Types.ObjectId.isValid(contentId)) {
+                return res.status(400).json({ success: false, message: 'ID inválido.' });
+            }
+
+            const content = await Comunidade.findById(contentId);
+            if (!content || !content.poll) {
+                return res.status(404).json({ success: false, message: 'Enquete não encontrada.' });
+            }
+
+            const poll = content.poll;
+            if (!poll.options || optionIndex < 0 || optionIndex >= poll.options.length) {
+                return res.status(400).json({ success: false, message: 'Opção inválida.' });
+            }
+
+            poll.options.forEach((option) => {
+                option.votes = option.votes.filter(voteId => voteId.toString() !== userId.toString());
+            });
+
+            const selectedOption = poll.options[optionIndex];
+            if (!selectedOption.votes.includes(userId)) {
+                selectedOption.votes.push(userId);
+            }
+
+            content.poll = poll;
+            await content.save();
+
+            res.json({ success: true, poll: content.poll });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Erro ao votar na enquete.' });
         }
     },
 
@@ -228,14 +291,7 @@ const ComunidadeController = {
                 return res.status(400).json({ success: false, message: 'ID inválido.' });
             }
 
-            const {
-                title,
-                message,
-                content,
-                imagens,
-                link,
-                isImportant
-            } = req.body;
+            const { title, message, content, imagens, link, isImportant, attachments, poll } = req.body;
 
             const existingContent = await Comunidade.findById(contentId);
             if (!existingContent) {
@@ -256,6 +312,30 @@ const ComunidadeController = {
                     typeof imagens === 'string'
                         ? [imagens]
                         : imagens;
+            }
+
+            if (attachments) {
+                try {
+                    const parsedAttachments = typeof attachments === 'string' ? JSON.parse(attachments) : attachments;
+                    existingContent.attachments = Array.isArray(parsedAttachments) ? parsedAttachments : existingContent.attachments;
+                } catch (parseErr) {
+                    // ignore invalid attachments payload
+                }
+            }
+
+            if (poll) {
+                try {
+                    const parsedPoll = typeof poll === 'string' ? JSON.parse(poll) : poll;
+                    if (parsedPoll.question && Array.isArray(parsedPoll.options)) {
+                        existingContent.poll = {
+                            question: parsedPoll.question,
+                            options: parsedPoll.options.map((option) => ({ text: option.text || option, votes: option.votes || [] })),
+                            createdBy: existingContent.poll?.createdBy || req.user._id
+                        };
+                    }
+                } catch (parseErr) {
+                    // ignore invalid poll payload
+                }
             }
 
             if (req.file) {

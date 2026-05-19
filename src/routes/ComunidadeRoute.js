@@ -14,6 +14,7 @@ app.delete('/contents/:id', verifyToken, ComunidadeController.deleteContent);
 
 
 app.post('/contents/:id/like', verifyToken, ComunidadeController.likeContent);
+app.post('/contents/:id/poll/:optionIndex/vote', verifyToken, ComunidadeController.votePoll);
 
 app.post('/contents/:id/comments', verifyToken, ComunidadeController.addComment);
 app.put('/comments/:id', verifyToken, ComunidadeController.editComment);

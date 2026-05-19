@@ -383,6 +383,8 @@ const AuthController = {
                 existingPerformance.feedback.needsImprovement = needsImprovement;
                 existingPerformance.month = currentMonth; // Add month if missing
                 existingPerformance.date = new Date();
+                // Mark fields as modified for Mongoose to save
+                existingPerformance.markModified('feedback');
                 await existingPerformance.save();
                 return res.json({ success: true, performance: existingPerformance });
             } else {

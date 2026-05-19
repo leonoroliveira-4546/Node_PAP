@@ -14,10 +14,17 @@ app.put("/dojos/:dojoId/schedule", verifyToken, DojoController.updateTrainingSch
 app.get("/dojo/members/:dojoId", verifyToken, DojoController.getDojoMembers);
 app.post("/dojo/remove-member", verifyToken, DojoController.removeMember);
 app.post("/dojo/remove-child", verifyToken, DojoController.removeChildFromResponsible);
+app.get("/dojo/athletes-without-dojo", verifyToken, DojoController.getAthletesWithoutDojo);
 
 app.post("/dojos/:dojoId/tournaments", verifyToken, DojoController.createTournament);
 app.get("/dojos/:dojoId/tournaments", verifyToken, DojoController.getDojoTournaments);
 app.put("/dojos/tournaments/:tournamentId", verifyToken, DojoController.updateTournament);
 app.delete("/dojos/tournaments/:tournamentId", verifyToken, DojoController.deleteTournament);
+app.post("/dojos/migrate-tournaments", verifyToken, DojoController.migrateTournamentsToDojo);
+
+app.post("/dojos/:dojoId/invite", verifyToken, DojoController.inviteMember);
+app.post("/dojos/:dojoId/request", verifyToken, DojoController.submitJoinRequest);
+app.post("/dojos/:dojoId/requests/:userId/accept", verifyToken, DojoController.acceptJoinRequest);
+app.post("/dojos/:dojoId/requests/:userId/reject", verifyToken, DojoController.rejectJoinRequest);
 
 module.exports = app;

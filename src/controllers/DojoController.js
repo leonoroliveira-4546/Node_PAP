@@ -1,5 +1,6 @@
 const Dojos = require("../models/Dojo/DojosModel");
-const Tournament = require("../models/Dojo/TournamentModel");
+const Tournament = require("../models/Predictions/TournamentModel");
+const Users = require("../models/UsersModel");
 
 const DojoController = {
     createDojo: async (req, res) => {
@@ -71,12 +72,29 @@ const DojoController = {
         }
     },
 
+    getAthletesWithoutDojo: async (req, res) => {
+        try {
+            const Users = require("../models/UsersModel");
+            
+            // Buscar atletas que não têm dojoId
+            const athletes = await Users.find({ 
+                dojoId: null,
+                type: 'athlete'
+            }).select('username email _id');
+
+            res.json({ success: true, athletes });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
     getDojoMembers: async (req, res) => {
         try {
             const { dojoId } = req.params;
 
             const dojo = await Dojos.findById(dojoId)
-                .populate("members", "username email type childrens birthDate");
+                .populate("members", "username email type childrens birthDate")
+                .populate("joinRequests.user", "username email");
 
             if (!dojo) {
                 return res.status(404).json({ success: false, message: "Dojo não encontrado" });
@@ -113,6 +131,87 @@ const DojoController = {
             }
 
             res.json({ success: true, members: realMembers, dojo: { ...dojo.toObject(), members: realMembers } });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    inviteMember: async (req, res) => {
+        try {
+            const { dojoId } = req.params;
+            const { email } = req.body;
+            const userId = req.user?._id; // from verifyToken middleware
+
+            if (!email) return res.status(400).json({ success: false, error: 'Email necessário' });
+
+            const dojo = await Dojos.findById(dojoId);
+            if (!dojo) return res.status(404).json({ success: false, error: 'Dojo não encontrado' });
+
+            // Evitar convites duplicados
+            const exists = dojo.invites && dojo.invites.find(i => i.email === email && i.status === 'pending');
+            if (exists) return res.json({ success: false, error: 'Convite já enviado' });
+
+            dojo.invites.push({ email, invitedBy: userId, status: 'pending' });
+            await dojo.save();
+
+            return res.json({ success: true, message: 'Convite enviado', invite: { email } });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    submitJoinRequest: async (req, res) => {
+        try {
+            const { dojoId } = req.params;
+            const userId = req.user?._id;
+
+            const dojo = await Dojos.findById(dojoId);
+            if (!dojo) return res.status(404).json({ success: false, error: 'Dojo não encontrado' });
+
+            const already = dojo.joinRequests && dojo.joinRequests.find(r => r.user.toString() === userId);
+            if (already) return res.json({ success: false, error: 'Pedido já enviado' });
+
+            dojo.joinRequests.push({ user: userId });
+            await dojo.save();
+
+            return res.json({ success: true, message: 'Pedido enviado' });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    acceptJoinRequest: async (req, res) => {
+        try {
+            const { dojoId, userId } = req.params;
+
+            const dojo = await Dojos.findById(dojoId);
+            if (!dojo) return res.status(404).json({ success: false, error: 'Dojo não encontrado' });
+
+            // Remover do joinRequests
+            dojo.joinRequests = dojo.joinRequests.filter(r => r.user.toString() !== userId);
+            // Adicionar aos membros se ainda não estiver
+            if (!dojo.members.find(m => m.toString() === userId)) {
+                dojo.members.push(userId);
+            }
+            await dojo.save();
+
+            return res.json({ success: true, message: 'Pedido aceite' });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    rejectJoinRequest: async (req, res) => {
+        try {
+            const { dojoId, userId } = req.params;
+
+            const dojo = await Dojos.findById(dojoId);
+            if (!dojo) return res.status(404).json({ success: false, error: 'Dojo não encontrado' });
+
+            dojo.joinRequests = dojo.joinRequests.filter(r => r.user.toString() !== userId);
+            await dojo.save();
+
+            return res.json({ success: true, message: 'Pedido rejeitado' });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
         }
@@ -185,6 +284,20 @@ const DojoController = {
             const { name, date, location, userId } = req.body;
             const { dojoId } = req.params;
 
+            // Validar data: não permitir datas anteriores ao dia atual
+            const tournamentDate = new Date(date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            tournamentDate.setHours(0, 0, 0, 0);
+
+            if (isNaN(tournamentDate.getTime())) {
+                return res.status(400).json({ success: false, error: 'Data inválida' });
+            }
+
+            if (tournamentDate < today) {
+                return res.status(400).json({ success: false, error: 'Data do torneio não pode ser anterior à data atual' });
+            }
+
             const tournament = new Tournament({
                 name,
                 date,
@@ -193,6 +306,8 @@ const DojoController = {
                 createdBy: userId
             });
             await tournament.save();
+
+            console.log('createTournament: saved tournament', { dojoId, tournamentId: tournament._id, name, date, location, createdBy: userId });
 
             res.status(201).json({ success: true, tournament });
         } catch (err) {
@@ -203,11 +318,61 @@ const DojoController = {
     getDojoTournaments: async (req, res) => {
         try {
             const { dojoId } = req.params;
+            const userId = req.user?._id;
 
-            const tournaments = await Tournament.find({ dojo: dojoId })
-                .sort({ date: 1 });
+            console.log('getDojoTournaments: dojoId=', dojoId, 'userId=', userId);
+
+            let tournaments = await Tournament.find({ dojo: dojoId })
+                .sort({ date: 1 })
+                .populate('participants', 'username email');
+
+            if ((!tournaments || tournaments.length === 0) && userId) {
+                console.log('getDojoTournaments: no tournaments found for dojo, checking fallback by createdBy and missing dojo');
+                tournaments = await Tournament.find({
+                    $or: [
+                        { dojo: dojoId },
+                        { dojo: null, createdBy: userId }
+                    ]
+                })
+                .sort({ date: 1 })
+                .populate('participants', 'username email');
+            }
+
+            console.log('getDojoTournaments: found', (tournaments || []).length, 'tournaments for dojo', dojoId);
+            if (tournaments && tournaments.length > 0) {
+                console.log('getDojoTournaments sample[0]=', tournaments[0]);
+            }
 
             res.json({ success: true, tournaments });
+        } catch (err) {
+            res.status(500).json({ success: false, error: err.message });
+        }
+    },
+
+    migrateTournamentsToDojo: async (req, res) => {
+        try {
+            const tournaments = await Tournament.find({ dojo: null });
+            const migrated = [];
+            const skipped = [];
+
+            for (const tournament of tournaments) {
+                if (!tournament.createdBy) {
+                    skipped.push({ id: tournament._id.toString(), reason: 'missing createdBy' });
+                    continue;
+                }
+
+                const user = await Users.findById(tournament.createdBy);
+                if (!user || !user.dojoId) {
+                    skipped.push({ id: tournament._id.toString(), reason: 'missing user or dojoId' });
+                    continue;
+                }
+
+                tournament.dojo = user.dojoId;
+                await tournament.save();
+                migrated.push(tournament._id.toString());
+            }
+
+            res.json({ success: true, migratedCount: migrated.length, migrated, skipped });
         } catch (err) {
             res.status(500).json({ success: false, error: err.message });
         }
@@ -216,11 +381,11 @@ const DojoController = {
     updateTournament: async (req, res) => {
         try {
             const { tournamentId } = req.params;
-            const { name, date, location } = req.body;
+            const { name, date, location, participants } = req.body;
 
             const tournament = await Tournament.findByIdAndUpdate(
                 tournamentId,
-                { name, date, location },
+                { name, date, location, participants },
                 { new: true }
             );
 

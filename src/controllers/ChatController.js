@@ -74,12 +74,12 @@ const getConversations = async (req, res, next) => {
     try {
         const userId = new mongoose.Types.ObjectId(req.user._id); // Assuming req.user from auth middleware
 
-        const conversations = await Conversation.find({ participants: userId }).populate('participants', 'username profilePic type');
+        let conversations = await Conversation.find({ participants: userId }).populate('participants', 'username profilePic type');
 
         const existingOtherUsers = new Set();
 
         // Get existing other users
-        if(conversations) {
+        if (conversations) {
             for (const conv of conversations) {
                 const other = conv.participants?.find(
                     p => p._id.toString() !== userId.toString()
@@ -90,42 +90,70 @@ const getConversations = async (req, res, next) => {
                 }
             }
         }
-        
+
         // Get possible recipients
         const user = await User.findById(userId);
+        if (!user) {
+            return res.json([]);
+        }
+
         const possibleRecipients = await getPossibleRecipients(user);
 
-        // Create missing conversations
+        // Create missing conversations (be defensive against duplicates)
         for (const recipient of possibleRecipients) {
-            if (!existingOtherUsers.has(recipient._id.toString())) {
-                const participants = [userId, recipient._id].sort((a, b) => a.toString().localeCompare(b.toString()));
-                const newConv = new Conversation({ participants });
-                await newConv.save();
-                // Add to conversations list
-                conversations.push(await Conversation.findById(newConv._id).populate('participants', 'username profilePic type'));
+            try {
+                if (!recipient || recipient._id.toString() === userId.toString()) continue;
+                if (!existingOtherUsers.has(recipient._id.toString())) {
+                    const participants = [userId, recipient._id].sort((a, b) => a.toString().localeCompare(b.toString()));
+                    const newConv = new Conversation({ participants });
+                    try {
+                        await newConv.save();
+                        // Add to conversations list
+                        conversations.push(await Conversation.findById(newConv._id).populate('participants', 'username profilePic type'));
+                    } catch (saveErr) {
+                        // Ignore duplicate key errors (conversation already exists) and continue
+                        if (saveErr.code && (saveErr.code === 11000 || saveErr.code === 11001)) {
+                            // attempt to load existing
+                            const existing = await Conversation.findOne({ participants }).populate('participants', 'username profilePic type');
+                            if (existing) conversations.push(existing);
+                        } else {
+                            // log and continue
+                            console.error('Error saving conversation:', saveErr.message);
+                        }
+                    }
+                }
+            } catch (innerErr) {
+                console.error('Error handling recipient:', innerErr.message);
             }
         }
 
-        const result = await Promise.all(conversations.map(async (conv) => {
-            const otherParticipant = conv.participants.find(p => p._id.toString() !== userId.toString());
-            const lastMessage = await Message.findOne({ conversationId: conv._id }).sort({ timestamp: -1 });
+        const result = [];
+        for (const conv of conversations) {
+            try {
+                const otherParticipant = conv.participants.find(p => p._id.toString() !== userId.toString());
+                if (!otherParticipant) continue;
+                const lastMessage = await Message.findOne({ conversationId: conv._id }).sort({ timestamp: -1 });
 
-            return {
-                _id: conv._id,
-                title: otherParticipant.username,
-                lastMessage: lastMessage ? lastMessage.content : '',
-                timestamp: lastMessage ? lastMessage.timestamp : conv.createdAt,
-                otherUser: {
-                    _id: otherParticipant._id,
-                    username: otherParticipant.username,
-                    profilePic: otherParticipant.profilePic,
-                    type: otherParticipant.type
-                }
-            };
-        }));
+                result.push({
+                    _id: conv._id,
+                    title: otherParticipant.username,
+                    lastMessage: lastMessage ? lastMessage.content : '',
+                    timestamp: lastMessage ? lastMessage.timestamp : conv.createdAt,
+                    otherUser: {
+                        _id: otherParticipant._id,
+                        username: otherParticipant.username,
+                        profilePic: otherParticipant.profilePic,
+                        type: otherParticipant.type
+                    }
+                });
+            } catch (mapErr) {
+                console.error('Error mapping conversation:', mapErr.message);
+            }
+        }
 
         res.json(result);
     } catch (error) {
+        console.error('getConversations error:', error.message);
         res.status(500).json({ error: error.message });
     }
 };
@@ -184,13 +212,14 @@ const sendMessage = async (req, res) => {
             .populate('senderId', 'username profilePic');
 
         const io = getIO();
-        const recipientSocket = userSockets[recipientId];
-
-        if (recipientSocket) {
-            io.to(recipientSocket).emit('receive_message', {
+        // Emit to the conversation room so all participants receive the message
+        try {
+            if (io) io.to(conversation._id.toString()).emit('receive_message', {
                 conversationId: conversation._id,
                 message: populatedMessage
             });
+        } catch (emitErr) {
+            console.error('Emit error:', emitErr.message);
         }
 
         res.json(message);
