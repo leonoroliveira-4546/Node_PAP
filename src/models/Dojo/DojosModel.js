@@ -24,7 +24,19 @@ const DojosSchema = new mongoose.Schema({
       ref: 'users',
       required: true
     },
-    members: [{_id: { type: mongoose.Schema.Types.ObjectId, ref: 'users' }}]
+    members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users' }],
+    // Convites enviados pelo sensei (email + quem convidou)
+    invites: [{
+      email: { type: String },
+      invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'users' },
+      status: { type: String, default: 'pending' },
+      date: { type: Date, default: Date.now }
+    }],
+    // Pedidos de entrada enviados por usuários
+    joinRequests: [{
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'users' },
+      date: { type: Date, default: Date.now }
+    }]
 });
 
 const Dojos = mongoose.model("dojos", DojosSchema);
