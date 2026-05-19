@@ -2,6 +2,44 @@ const Dojos = require("../models/Dojo/DojosModel");
 const Tournament = require("../models/Predictions/TournamentModel");
 const Users = require("../models/UsersModel");
 
+const normalizeParticipants = async (participants = []) => {
+    if (!Array.isArray(participants)) return [];
+
+    const normalized = [];
+    for (const item of participants) {
+        if (!item) continue;
+
+        if (typeof item === 'string') {
+            const user = await Users.findById(item).lean();
+            normalized.push({
+                name: user?.username || 'Participante',
+                belt: user?.belt || 'Branca',
+                userId: item
+            });
+            continue;
+        }
+
+        if (typeof item === 'object') {
+            const userId = item.userId || item._id;
+            if (userId) {
+                const user = await Users.findById(userId).lean();
+                normalized.push({
+                    name: item.name || user?.username || 'Participante',
+                    belt: item.belt || user?.belt || 'Branca',
+                    userId
+                });
+            } else {
+                normalized.push({
+                    name: item.name || 'Participante',
+                    belt: item.belt || 'Branca',
+                    userId: null
+                });
+            }
+        }
+    }
+    return normalized;
+};
+
 const DojoController = {
     createDojo: async (req, res) => {
         try {
@@ -281,7 +319,7 @@ const DojoController = {
 
     createTournament: async (req, res) => {
         try {
-            const { name, date, location, userId } = req.body;
+            const { name, date, location, userId, participants } = req.body;
             const { dojoId } = req.params;
 
             // Validar data: não permitir datas anteriores ao dia atual
@@ -298,11 +336,13 @@ const DojoController = {
                 return res.status(400).json({ success: false, error: 'Data do torneio não pode ser anterior à data atual' });
             }
 
+            const normalizedParticipants = await normalizeParticipants(participants);
             const tournament = new Tournament({
                 name,
                 date,
                 location,
                 dojo: dojoId,
+                participants: normalizedParticipants,
                 createdBy: userId
             });
             await tournament.save();
@@ -381,11 +421,16 @@ const DojoController = {
     updateTournament: async (req, res) => {
         try {
             const { tournamentId } = req.params;
-            const { name, date, location } = req.body;
+            const { name, date, location, participants } = req.body;
+
+            const updateData = { name, date, location };
+            if (participants) {
+                updateData.participants = await normalizeParticipants(participants);
+            }
 
             const tournament = await Tournament.findByIdAndUpdate(
                 tournamentId,
-                { name, date, location },
+                updateData,
                 { new: true }
             );
 
