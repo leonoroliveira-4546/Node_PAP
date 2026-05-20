@@ -467,6 +467,10 @@ const AuthController = {
 
             const existingMonth = user.absences.find(a => a.month === month);
 
+            if (reason === "other") {
+                user.points -= 5;
+            }
+
             if (existingMonth) {
                 existingMonth.count += 1;
             } else {
