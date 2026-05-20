@@ -43,6 +43,7 @@ const DojosRoute = require("./routes/DojosRoute");
 const ComunidadeRoute = require("./routes/ComunidadeRoute");
 const ChatRoute = require("./routes/ChatRoute");
 const YoutubeRoute = require("./routes/YoutubeApi/youtube");
+const EducationalRoute = require("./routes/EducationalRoute");
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -51,6 +52,7 @@ app.use(DojosRoute);
 app.use(ComunidadeRoute);
 app.use(ChatRoute);
 app.use("/youtube", YoutubeRoute);
+app.use(EducationalRoute);
 
 mongoose.connect(mongodb_url)
   .then(result => {

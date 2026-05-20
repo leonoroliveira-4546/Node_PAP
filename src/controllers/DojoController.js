@@ -362,21 +362,24 @@ const DojoController = {
 
             console.log('getDojoTournaments: dojoId=', dojoId, 'userId=', userId);
 
-            let tournaments = await Tournament.find({ dojo: dojoId })
-                .sort({ date: 1 })
-                .populate('participants', 'username email');
+            const query = userId ? {
+                $and: [
+                    { participants: { $size: 0 } },
+                    {
+                        $or: [
+                            { dojo: dojoId },
+                            { dojo: null, createdBy: userId }
+                        ]
+                    }
+                ]
+            } : {
+                dojo: dojoId,
+                participants: { $size: 0 }
+            };
 
-            if ((!tournaments || tournaments.length === 0) && userId) {
-                console.log('getDojoTournaments: no tournaments found for dojo, checking fallback by createdBy and missing dojo');
-                tournaments = await Tournament.find({
-                    $or: [
-                        { dojo: dojoId },
-                        { dojo: null, createdBy: userId }
-                    ]
-                })
+            const tournaments = await Tournament.find(query)
                 .sort({ date: 1 })
-                .populate('participants', 'username email');
-            }
+                .populate('participants.userId', 'username email');
 
             console.log('getDojoTournaments: found', (tournaments || []).length, 'tournaments for dojo', dojoId);
             if (tournaments && tournaments.length > 0) {
