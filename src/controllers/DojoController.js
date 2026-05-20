@@ -231,6 +231,10 @@ const DojoController = {
             if (!dojo.members.find(m => m.toString() === userId)) {
                 dojo.members.push(userId);
             }
+
+            // Atualizar o usuário para refletir que agora faz parte deste dojo
+            await Users.findByIdAndUpdate(userId, { dojoId: dojo._id });
+
             await dojo.save();
 
             return res.json({ success: true, message: 'Pedido aceite' });
