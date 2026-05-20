@@ -6,7 +6,6 @@ const EducationalChallengeController = {
   createChallenge: async (req, res) => {
     try {
       const { title, description, dojoId, date, type, options, correctAnswer, points, expireAt } = req.body;
-      // Only sensei or admin can create - check req.user.type
       if (!req.user || !['sensei', 'admin'].includes(req.user.type)) {
         return res.status(403).json({ success: false, message: 'Permissão negada.' });
       }
@@ -21,7 +20,7 @@ const EducationalChallengeController = {
         correctAnswer,
         points: points || 20,
         createdBy: req.user._id,
-        expireAt: expireAt ? new Date(expireAt) : (date ? new Date(new Date(date + 'T23:59:59')) : null)
+        expireAt: expireAt ? new Date(expireAt) : (date ? new Date(new Date(`${date}T23:59:59`)) : null)
       });
 
       return res.status(201).json({ success: true, challenge });
@@ -38,8 +37,10 @@ const EducationalChallengeController = {
       const now = new Date();
       const challenge = await Challenge.findOne({
         dojoId,
-        $or: [ { date: today }, { date: { $exists: false } }, { date: '' } ],
-        $or: [ { expireAt: null }, { expireAt: { $gt: now } } ]
+        $and: [
+          { $or: [ { date: today }, { date: { $exists: false } }, { date: '' } ] },
+          { $or: [ { expireAt: null }, { expireAt: { $gt: now } } ] }
+        ]
       }).sort({ createdAt: -1 });
 
       if (!challenge) return res.json({ success: true, challenge: null });
@@ -47,6 +48,41 @@ const EducationalChallengeController = {
     } catch (err) {
       console.error(err);
       return res.status(500).json({ success: false, message: 'Erro ao buscar desafio.' });
+    }
+  },
+
+  getChallengesByDojo: async (req, res) => {
+    try {
+      const { dojoId } = req.params;
+      const challenges = await Challenge.find({ dojoId }).sort({ createdAt: -1 });
+      return res.json({ success: true, challenges });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ success: false, message: 'Erro ao buscar desafios.' });
+    }
+  },
+
+  getChallengeResponses: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const responses = await ChallengeResponse.find({ challengeId: id }).sort({ createdAt: -1 });
+      return res.json({ success: true, responses });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ success: false, message: 'Erro ao buscar respostas.' });
+    }
+  },
+
+  getUserResponse: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+      if (!user) return res.status(401).json({ success: false, message: 'Autenticação necessária.' });
+      const response = await ChallengeResponse.findOne({ challengeId: id, athleteId: user._id });
+      return res.json({ success: true, answered: !!response, response });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ success: false, message: 'Erro ao buscar resposta do usuário.' });
     }
   },
 
@@ -60,12 +96,10 @@ const EducationalChallengeController = {
       const challenge = await Challenge.findById(id);
       if (!challenge) return res.status(404).json({ success: false, message: 'Desafio não encontrado.' });
 
-      // Check TTL/expire
       if (challenge.expireAt && new Date() > new Date(challenge.expireAt)) {
         return res.status(410).json({ success: false, message: 'Desafio expirado.' });
       }
 
-      // Check if already answered
       const existing = await ChallengeResponse.findOne({ challengeId: id, athleteId: user._id });
       if (existing) return res.status(400).json({ success: false, message: 'Você já respondeu a este desafio.' });
 
@@ -92,16 +126,51 @@ const EducationalChallengeController = {
     }
   },
 
-  deleteChallenge: async (req, res) => {
+  updateChallenge: async (req, res) => {
     try {
       const { id } = req.params;
-      // permission check
+      const { title, description, date, type, options, correctAnswer, points, expireAt } = req.body;
       if (!req.user || !['sensei', 'admin'].includes(req.user.type)) {
         return res.status(403).json({ success: false, message: 'Permissão negada.' });
       }
-      const deleted = await Challenge.findByIdAndDelete(id);
-      if (!deleted) return res.status(404).json({ success: false, message: 'Desafio não encontrado.' });
-      // also remove responses
+
+      const challenge = await Challenge.findById(id);
+      if (!challenge) return res.status(404).json({ success: false, message: 'Desafio não encontrado.' });
+      if (req.user.type === 'sensei' && challenge.dojoId.toString() !== req.user.dojoId?.toString()) {
+        return res.status(403).json({ success: false, message: 'Permissão negada.' });
+      }
+
+      challenge.title = title;
+      challenge.description = description;
+      challenge.date = date;
+      challenge.type = type;
+      challenge.options = options;
+      challenge.correctAnswer = correctAnswer;
+      challenge.points = points || 20;
+      challenge.expireAt = expireAt ? new Date(expireAt) : (date ? new Date(new Date(`${date}T23:59:59`)) : null);
+      await challenge.save();
+
+      return res.json({ success: true, challenge });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ success: false, message: 'Erro ao atualizar desafio.' });
+    }
+  },
+
+  deleteChallenge: async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (!req.user || !['sensei', 'admin'].includes(req.user.type)) {
+        return res.status(403).json({ success: false, message: 'Permissão negada.' });
+      }
+
+      const challenge = await Challenge.findById(id);
+      if (!challenge) return res.status(404).json({ success: false, message: 'Desafio não encontrado.' });
+      if (req.user.type === 'sensei' && challenge.dojoId.toString() !== req.user.dojoId?.toString()) {
+        return res.status(403).json({ success: false, message: 'Permissão negada.' });
+      }
+
+      await challenge.remove();
       await ChallengeResponse.deleteMany({ challengeId: id });
       return res.json({ success: true, message: 'Desafio removido.' });
     } catch (err) {
