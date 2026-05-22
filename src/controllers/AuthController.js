@@ -102,6 +102,7 @@ const AuthController = {
 
     register: async (req, res) => {
         const { username, email, password, type,  birthDate, dojoId, responsavelId, childrens} = req.body;
+        let firebaseUser = null;
 
         try {
             const existingUserByEmail = await Users.findOne({ email });
@@ -117,14 +118,11 @@ const AuthController = {
                 return res.status(400).json({success: false, message: "Responsável precisa ter pelo menos um filho." });
             }
 
-            const firebaseUser = await admin.auth().createUser({
+            firebaseUser = await admin.auth().createUser({
                 email,
                 password,
                 displayName: username
             });
-
-            const verficationLink = await admin.auth().generateEmailVerificationLink(email);
-            await sendVerificationEmail(email, verficationLink);
 
             const newUser = await Users.create({
                 authUid: firebaseUser.uid,
@@ -140,8 +138,29 @@ const AuthController = {
                 status: 'pending',
                 emailVerified: false
             });
-            
-            return res.status(201).json({success: true, message: "Usuário criado com sucesso. Verifique seu e-mail.", user: newUser });
+
+            let emailWarning = null;
+            try {
+                const verficationLink = await admin.auth().generateEmailVerificationLink(email);
+                await sendVerificationEmail(email, verficationLink);
+            } catch (emailErr) {
+                console.error('Verification email failed:', emailErr);
+                emailWarning = emailErr.message;
+            }
+
+            const response = {
+                success: true,
+                message: emailWarning
+                    ? "Usuário criado com sucesso, mas não foi possível enviar o email de verificação."
+                    : "Usuário criado com sucesso. Verifique seu e-mail.",
+                user: newUser
+            };
+
+            if (emailWarning) {
+                response.emailWarning = emailWarning;
+            }
+
+            return res.status(201).json(response);
         } catch (err) {
             console.log(err);
             if (firebaseUser?.uid) {
