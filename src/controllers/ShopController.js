@@ -2,7 +2,12 @@ const Product = require('../models/Shop/ProductModel');
 const Order = require('../models/Shop/OrderModel');
 const { uploadToCloudinary } = require('../middlewares/upload');
 const Stripe = require('stripe');
-const stripe = process.env.STRIPE_SECRET_KEY ? Stripe(process.env.STRIPE_SECRET_KEY) : null;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || null;
+const stripe = stripeSecretKey ? Stripe(stripeSecretKey) : null;
+
+if (!stripe) {
+  console.warn('Stripe não configurado. Defina STRIPE_SECRET_KEY no .env.');
+}
 
 const ShopController = {
   getProducts: async (req, res) => {
@@ -155,7 +160,7 @@ const ShopController = {
         },
       });
 
-      return res.json({ success: true, url: session.url });
+      return res.json({ success: true, url: session.url, sessionId: session.id });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ success: false, message: 'Erro ao criar sessão de checkout.' });
