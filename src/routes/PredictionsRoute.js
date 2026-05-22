@@ -10,5 +10,6 @@ app.get('/predictions/my', verifyToken, PredictionsController.getMyPredictions);
 app.post('/predictions', verifyToken, PredictionsController.submitPrediction);
 app.post('/predictions/tournaments', verifyToken, verifyAdmin, PredictionsController.createTournament);
 app.put('/predictions/tournaments/:id', verifyToken, verifyAdmin, PredictionsController.updateTournament);
+app.delete('/predictions/tournaments/:id', verifyToken, verifyAdmin, PredictionsController.deleteTournament);
 
 module.exports = app;

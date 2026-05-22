@@ -55,6 +55,7 @@ const PredictionsController = {
         name,
         date,
         location,
+        dojo: req.user.dojoId || null,
         participants: participants || [],
         status: status || 'open',
         winner: winner || null,
@@ -62,7 +63,7 @@ const PredictionsController = {
       });
       return res.status(201).json({ success: true, tournament });
     } catch (err) {
-      console.error(err);
+      console.error('PredictionsController.createTournament error:', err.stack || err);
       return res.status(500).json({ success: false, message: 'Erro ao criar torneio.' });
     }
   },
@@ -79,6 +80,23 @@ const PredictionsController = {
     } catch (err) {
       console.error(err);
       return res.status(500).json({ success: false, message: 'Erro ao atualizar torneio.' });
+    }
+  }
+
+  ,
+  deleteTournament: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const tournament = await Tournament.findByIdAndDelete(id);
+      if (!tournament) {
+        return res.status(404).json({ success: false, message: 'Torneio não encontrado.' });
+      }
+      // Optionally, remove related predictions
+      await Prediction.deleteMany({ tournamentId: id });
+      return res.json({ success: true, message: 'Torneio removido.' });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ success: false, message: 'Erro ao remover torneio.' });
     }
   }
 };
