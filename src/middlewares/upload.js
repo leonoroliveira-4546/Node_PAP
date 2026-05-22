@@ -7,14 +7,14 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 }
 });
 
-const uploadToCloudinary = (fileBuffer) => {
+const uploadToCloudinary = (fileBuffer, folder = "posts") => {
   return new Promise((resolve, reject) => {
     if (!fileBuffer) {
       return reject(new Error('Nenhum arquivo enviado para upload.'));
     }
 
     cloudinary.uploader.upload_stream(
-      { folder: "posts", resource_type: 'image' },
+      { folder, resource_type: 'image' },
       (error, result) => {
         if (error) {
           console.log("CLOUDINARY ERROR:", error);

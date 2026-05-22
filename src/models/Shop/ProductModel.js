@@ -6,6 +6,7 @@ const ProductSchema = new mongoose.Schema({
   category: { type: String, default: 'Acessório' },
   price: { type: Number, required: true, default: 0 },
   originalPrice: { type: Number, default: null },
+  quantity: { type: Number, default: 1 },
   rating: { type: Number, default: 4.5 },
   reviewCount: { type: Number, default: 0 },
   inStock: { type: Boolean, default: true },

@@ -1,5 +1,6 @@
 const Product = require('../models/Shop/ProductModel');
 const Order = require('../models/Shop/OrderModel');
+const { uploadToCloudinary } = require('../middlewares/upload');
 
 const ShopController = {
   getProducts: async (req, res) => {
@@ -26,9 +27,24 @@ const ShopController = {
     }
   },
 
+  getMyProducts: async (req, res) => {
+    try {
+      const products = await Product.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
+      return res.json({ success: true, products });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ success: false, message: 'Erro ao buscar os seus produtos.' });
+    }
+  },
+
   createProduct: async (req, res) => {
     try {
-      const { name, description, category, price, originalPrice, badge, image, inStock, published, availableForPraticinador, status } = req.body;
+      const { name, description, category, price, originalPrice, badge, image, quantity, availableForPraticinador, status } = req.body;
+      let imageUrl = image;
+      if (req.file) {
+        const uploaded = await uploadToCloudinary(req.file.buffer, 'products');
+        imageUrl = uploaded.url;
+      }
       const defaultStatus = req.user.type === 'admin' ? 'aprovado' : 'pendente';
       const product = await Product.create({
         name,
@@ -36,10 +52,11 @@ const ShopController = {
         category,
         price,
         originalPrice,
+        quantity: quantity !== undefined ? Number(quantity) : 1,
         badge,
-        image,
-        inStock: inStock !== undefined ? Boolean(inStock) : true,
-        published: published !== undefined ? Boolean(published) : true,
+        image: imageUrl,
+        inStock: quantity !== undefined ? Number(quantity) > 0 : true,
+        published: true,
         status: status && req.user.type === 'admin' ? status : defaultStatus,
         availableForPraticinador: availableForPraticinador !== undefined ? Boolean(availableForPraticinador) : true,
         createdBy: req.user._id
@@ -54,12 +71,28 @@ const ShopController = {
   updateProduct: async (req, res) => {
     try {
       const { id } = req.params;
-      const updates = req.body;
-      const product = await Product.findByIdAndUpdate(id, updates, { new: true });
+      const updates = { ...req.body };
+      const product = await Product.findById(id);
       if (!product) {
         return res.status(404).json({ success: false, message: 'Produto não encontrado.' });
       }
-      return res.json({ success: true, product });
+
+      if (req.user.type !== 'admin' && product.createdBy?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ success: false, message: 'Não autorizado.' });
+      }
+
+      if (req.file) {
+        const uploaded = await uploadToCloudinary(req.file.buffer, 'products');
+        updates.image = uploaded.url;
+      }
+
+      if (updates.quantity !== undefined) {
+        updates.quantity = Number(updates.quantity);
+        updates.inStock = updates.quantity > 0;
+      }
+
+      const updatedProduct = await Product.findByIdAndUpdate(id, updates, { new: true });
+      return res.json({ success: true, product: updatedProduct });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ success: false, message: 'Erro ao atualizar produto.' });
@@ -69,10 +102,14 @@ const ShopController = {
   deleteProduct: async (req, res) => {
     try {
       const { id } = req.params;
-      const product = await Product.findByIdAndDelete(id);
+      const product = await Product.findById(id);
       if (!product) {
         return res.status(404).json({ success: false, message: 'Produto não encontrado.' });
       }
+      if (req.user.type !== 'admin' && product.createdBy?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ success: false, message: 'Não autorizado.' });
+      }
+      await Product.findByIdAndDelete(id);
       return res.json({ success: true, message: 'Produto removido com sucesso.' });
     } catch (err) {
       console.error(err);

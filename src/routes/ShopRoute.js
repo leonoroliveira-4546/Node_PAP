@@ -4,12 +4,14 @@ const app = express();
 const ShopController = require('../controllers/ShopController');
 const verifyToken = require('../middlewares/is_auth');
 const verifyAdmin = require('../middlewares/is_admin');
+const { upload } = require('../middlewares/upload');
 
 app.get('/shop/products', verifyToken, ShopController.getProducts);
 app.get('/shop/admin/products', verifyToken, verifyAdmin, ShopController.getAdminProducts);
-app.post('/shop/products', verifyToken, ShopController.createProduct);
-app.put('/shop/products/:id', verifyToken, verifyAdmin, ShopController.updateProduct);
-app.delete('/shop/products/:id', verifyToken, verifyAdmin, ShopController.deleteProduct);
+app.get('/shop/my/products', verifyToken, ShopController.getMyProducts);
+app.post('/shop/products', verifyToken, upload.single('file'), ShopController.createProduct);
+app.put('/shop/products/:id', verifyToken, upload.single('file'), ShopController.updateProduct);
+app.delete('/shop/products/:id', verifyToken, ShopController.deleteProduct);
 
 // Order routes
 app.post('/shop/orders', verifyToken, ShopController.createOrder);
