@@ -12,6 +12,7 @@ const ProductSchema = new mongoose.Schema({
   badge: { type: String, default: null },
   image: { type: String, default: null },
   published: { type: Boolean, default: true },
+  status: { type: String, enum: ['pendente', 'aprovado', 'rejeitado'], default: 'pendente' },
   availableForPraticinador: { type: Boolean, default: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null }
 }, { timestamps: true });

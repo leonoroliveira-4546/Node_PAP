@@ -44,6 +44,10 @@ const ComunidadeRoute = require("./routes/ComunidadeRoute");
 const ChatRoute = require("./routes/ChatRoute");
 const YoutubeRoute = require("./routes/YoutubeApi/youtube");
 const EducationalRoute = require("./routes/EducationalRoute");
+const AdminRoute = require("./routes/AdminRoute");
+const ShopRoute = require("./routes/ShopRoute");
+const PlansRoute = require("./routes/PlansRoute");
+const PredictionsRoute = require("./routes/PredictionsRoute");
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -53,6 +57,10 @@ app.use(ComunidadeRoute);
 app.use(ChatRoute);
 app.use("/youtube", YoutubeRoute);
 app.use(EducationalRoute);
+app.use(AdminRoute);
+app.use(ShopRoute);
+app.use(PlansRoute);
+app.use(PredictionsRoute);
 
 mongoose.connect(mongodb_url)
   .then(result => {

@@ -6,6 +6,7 @@ const PlanSchema = new mongoose.Schema({
   period: { type: String, required: true },
   description: { type: String, required: true },
   features: [{ type: String }],
+  color: { type: String, default: 'primary' },
   popular: { type: Boolean, default: false },
   active: { type: Boolean, default: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null }
