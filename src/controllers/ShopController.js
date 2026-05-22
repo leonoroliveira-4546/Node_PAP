@@ -1,6 +1,8 @@
 const Product = require('../models/Shop/ProductModel');
 const Order = require('../models/Shop/OrderModel');
 const { uploadToCloudinary } = require('../middlewares/upload');
+const Stripe = require('stripe');
+const stripe = process.env.STRIPE_SECRET_KEY ? Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
 const ShopController = {
   getProducts: async (req, res) => {
@@ -114,6 +116,49 @@ const ShopController = {
     } catch (err) {
       console.error(err);
       return res.status(500).json({ success: false, message: 'Erro ao remover produto.' });
+    }
+  },
+
+  createCheckoutSession: async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ success: false, message: 'Stripe não configurado.' });
+      }
+      const { items } = req.body;
+      if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ success: false, message: 'Itens do carrinho são obrigatórios.' });
+      }
+
+      const line_items = items.map((item) => ({
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: item.name,
+            description: item.description || '',
+          },
+          unit_amount: Math.round(Number(item.price) * 100),
+        },
+        quantity: Number(item.quantity) || 1,
+      }));
+
+      const successUrl = `${process.env.FRONTEND_URL || 'http://localhost:8100'}/shop?payment=success`;
+      const cancelUrl = `${process.env.FRONTEND_URL || 'http://localhost:8100'}/shop?payment=cancel`;
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        mode: 'payment',
+        line_items,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata: {
+          userId: req.user._id.toString(),
+        },
+      });
+
+      return res.json({ success: true, url: session.url });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ success: false, message: 'Erro ao criar sessão de checkout.' });
     }
   },
 

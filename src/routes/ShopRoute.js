@@ -13,6 +13,8 @@ app.post('/shop/products', verifyToken, upload.single('file'), ShopController.cr
 app.put('/shop/products/:id', verifyToken, upload.single('file'), ShopController.updateProduct);
 app.delete('/shop/products/:id', verifyToken, ShopController.deleteProduct);
 
+app.post('/shop/checkout', verifyToken, ShopController.createCheckoutSession);
+
 // Order routes
 app.post('/shop/orders', verifyToken, ShopController.createOrder);
 app.get('/shop/admin/orders', verifyToken, verifyAdmin, ShopController.getAdminOrders);
