@@ -27,10 +27,19 @@ const ComunidadeController = {
                 .populate('author', 'username profilePic')
                 .populate({
                     path: 'comments',
-                    populate: {
-                        path: 'author',
-                        select: 'username profilePic'
-                    }
+                    populate: [
+                        {
+                            path: 'author',
+                            select: 'username profilePic'
+                        },
+                        {
+                            path: 'replies',
+                            populate: {
+                                path: 'author',
+                                select: 'username profilePic'
+                            }
+                        }
+                    ]
                 })
                 .sort({ createdAt: -1 });
 
@@ -53,10 +62,19 @@ const ComunidadeController = {
                 .populate('author', 'username profilePic')
                 .populate({
                     path: 'comments',
-                    populate: {
-                        path: 'author',
-                        select: 'username profilePic'
-                    }
+                    populate: [
+                        {
+                            path: 'author',
+                            select: 'username profilePic'
+                        },
+                        {
+                            path: 'replies',
+                            populate: {
+                                path: 'author',
+                                select: 'username profilePic'
+                            }
+                        }
+                    ]
                 });
 
             if (!content) {
