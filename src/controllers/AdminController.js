@@ -1,3 +1,4 @@
+const admin = require('../config/firebase');
 const Users = require('../models/UsersModel');
 const Performance = require('../models/Dojo/PerformanceModel');
 
@@ -40,6 +41,32 @@ const AdminController = {
     } catch (err) {
       console.error(err);
       return res.status(500).json({ success: false, message: 'Erro ao reiniciar ranking.' });
+    }
+  },
+
+  deleteUser: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await Users.findById(id);
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'Usuário não encontrado.' });
+      }
+
+      const authUid = user.authUid;
+      await Users.findByIdAndDelete(id);
+
+      if (authUid) {
+        try {
+          await admin.auth().deleteUser(authUid);
+        } catch (firebaseError) {
+          console.warn('Firebase user delete failed:', firebaseError.message || firebaseError);
+        }
+      }
+
+      return res.json({ success: true, message: 'Usuário removido.' });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ success: false, message: 'Erro ao remover usuário.' });
     }
   }
 };
