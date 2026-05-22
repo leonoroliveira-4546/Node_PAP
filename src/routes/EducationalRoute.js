@@ -9,6 +9,8 @@ const verifyAdmin = require('../middlewares/is_admin');
 app.get('/educational', verifyToken, EducationalController.getContent);
 app.post('/educational', verifyToken, verifyAdmin, EducationalController.createContent);
 app.put('/educational/:id', verifyToken, verifyAdmin, EducationalController.updateContent);
+app.delete('/educational/:id', verifyToken, verifyAdmin, EducationalController.deleteContent);
+app.post('/educational/:id/submit', verifyToken, EducationalController.submitGameResponse);
 
 // Challenges for dojos
 app.post('/educational/challenges', verifyToken, EducationalChallengeController.createChallenge);
