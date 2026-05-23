@@ -1,13 +1,13 @@
 const verifyAdmin = (req, res, next) => {
     if (!req.user) {
-        return res.status(401).json({ success: false, message: 'Não autorizado.' });
+        return res.status(401).json({ success: false, message: 'Não autorizado.' })
     }
 
     if (req.user.type !== 'admin') {
-        return res.status(403).json({ success: false, message: 'Acesso restrito a administradores.' });
+        return res.status(403).json({ success: false, message: 'Acesso restrito a administradores.' })
     }
 
-    next();
-};
+    next()
+}
 
-module.exports = verifyAdmin;
+module.exports = verifyAdmin

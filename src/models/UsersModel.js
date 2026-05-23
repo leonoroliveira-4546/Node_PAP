@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require("mongoose")
 
 const UsersSchema = new mongoose.Schema({
     authUid: {
@@ -41,7 +41,7 @@ const UsersSchema = new mongoose.Schema({
     birthDate: {
       type: Date,
       required: function () {
-        return this.type === "athlete";
+        return this.type === "athlete"
       }
     },
     responsavelId: {
@@ -74,7 +74,7 @@ const UsersSchema = new mongoose.Schema({
       enum: ["pending", "active", "blocked"],
       default: "pending"
     }
-});
+})
 
-const Users = mongoose.model("users", UsersSchema);
-module.exports = Users;
+const Users = mongoose.model("users", UsersSchema)
+module.exports = Users

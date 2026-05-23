@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require("mongoose")
 
 const AttachmentSchema = new mongoose.Schema({
     type: {
@@ -11,7 +11,7 @@ const AttachmentSchema = new mongoose.Schema({
         required: true
     },
     title: String
-}, { _id: false });
+}, { _id: false })
 
 const PollOptionSchema = new mongoose.Schema({
     text: {
@@ -22,7 +22,7 @@ const PollOptionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'users'
     }]
-}, { _id: false });
+}, { _id: false })
 
 const PollSchema = new mongoose.Schema({
     question: {
@@ -34,7 +34,7 @@ const PollSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'users'
     }
-}, { _id: false });
+}, { _id: false })
 
 const ContentSchema = new mongoose.Schema({
     author: {
@@ -97,6 +97,6 @@ const ContentSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'comments'
     }]
-}, { timestamps: true });
+}, { timestamps: true })
 
-module.exports = mongoose.model("contents", ContentSchema);
+module.exports = mongoose.model("contents", ContentSchema)

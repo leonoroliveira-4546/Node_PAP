@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require("mongoose")
 
 const MessageSchema = new mongoose.Schema({
     conversationId: {
@@ -19,7 +19,7 @@ const MessageSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-});
+})
 
-const Message = mongoose.model("messages", MessageSchema);
-module.exports = Message;
+const Message = mongoose.model("messages", MessageSchema)
+module.exports = Message

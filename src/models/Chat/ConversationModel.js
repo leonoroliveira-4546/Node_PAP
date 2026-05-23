@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require("mongoose")
 
 const ConversationSchema = new mongoose.Schema({
     participants: [{
@@ -10,8 +10,8 @@ const ConversationSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-});
-ConversationSchema.index({ participants: 1 }, { unique: true });
+})
+ConversationSchema.index({ participants: 1 }, { unique: true })
 
-const Conversation = mongoose.model("conversations", ConversationSchema);
-module.exports = Conversation;
+const Conversation = mongoose.model("conversations", ConversationSchema)
+module.exports = Conversation

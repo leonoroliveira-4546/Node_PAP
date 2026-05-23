@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require("mongoose")
 
 const DojosSchema = new mongoose.Schema({
     name: {
@@ -37,7 +37,7 @@ const DojosSchema = new mongoose.Schema({
       user: { type: mongoose.Schema.Types.ObjectId, ref: 'users' },
       date: { type: Date, default: Date.now }
     }]
-});
+})
 
-const Dojos = mongoose.model("dojos", DojosSchema);
-module.exports = Dojos;
+const Dojos = mongoose.model("dojos", DojosSchema)
+module.exports = Dojos

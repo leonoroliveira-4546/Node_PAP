@@ -1,19 +1,19 @@
 require("dotenv").config({
   path: "../../.env"
-});
+})
 
-const express = require("express");
-const cors = require("cors");
+const express = require("express")
+const cors = require("cors")
 
-const youtubeRoutes = require("../routes/YoutubeApi/youtube");
+const youtubeRoutes = require("../routes/YoutubeApi/youtube")
 
-const app = express();
+const app = express()
 
-app.use(cors());
-app.use(express.json());
+app.use(cors())
+app.use(express.json())
 
-app.use("/youtube", youtubeRoutes);
+app.use("/youtube", youtubeRoutes)
 
 app.listen(3000, () => {
-  console.log("Servidor rodando");
-});
+
+})

@@ -1,4 +1,4 @@
-const transporter = require("./emailTransporter");
+const transporter = require("./emailTransporter")
 
 const sendVerificationEmail = async (email, verificationLink) => {
     const mailOptions = {
@@ -16,9 +16,9 @@ const sendVerificationEmail = async (email, verificationLink) => {
                     Se você não criou esta conta, ignore este email.
                 </p>
             </div> ` 
-    };
+    }
 
-    await transporter.sendMail(mailOptions);
-};
+    await transporter.sendMail(mailOptions)
+}
 
-module.exports = sendVerificationEmail;
+module.exports = sendVerificationEmail

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const ChallengeSchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -12,9 +12,9 @@ const ChallengeSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'users' },
   expireAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now }
-});
+})
 
 // TTL index to automatically remove expired challenges
-ChallengeSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
+ChallengeSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 })
 
-module.exports = mongoose.model('challenges', ChallengeSchema);
+module.exports = mongoose.model('challenges', ChallengeSchema)

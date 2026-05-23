@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const PredictionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
@@ -6,6 +6,6 @@ const PredictionSchema = new mongoose.Schema({
   predictedWinner: { type: String, required: true },
   pointsEarned: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
-});
+})
 
-module.exports = mongoose.model('predictions', PredictionSchema);
+module.exports = mongoose.model('predictions', PredictionSchema)

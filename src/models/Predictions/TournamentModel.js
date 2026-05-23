@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const ParticipantSchema = new mongoose.Schema({
   name: { type: String, required: true },
   belt: { type: String, default: 'Branca' },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null }
-});
+})
 
 const TournamentSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -15,6 +15,6 @@ const TournamentSchema = new mongoose.Schema({
   participants: [ParticipantSchema],
   winner: { type: String, default: null },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null }
-}, { timestamps: true });
+}, { timestamps: true })
 
-module.exports = mongoose.models.tournaments || mongoose.model('tournaments', TournamentSchema);
+module.exports = mongoose.models.tournaments || mongoose.model('tournaments', TournamentSchema)

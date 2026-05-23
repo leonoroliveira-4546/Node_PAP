@@ -1,4 +1,4 @@
-const transporter = require("./emailTransporter");
+const transporter = require("./emailTransporter")
 
 const sendResponsavelInviteEmail = async (email, athleteName, link) => {
   const mailOptions = {
@@ -21,9 +21,9 @@ const sendResponsavelInviteEmail = async (email, athleteName, link) => {
         </p>
       </div>
     `
-  };
+  }
 
-  await transporter.sendMail(mailOptions);
-};
+  await transporter.sendMail(mailOptions)
+}
 
-module.exports = sendResponsavelInviteEmail;
+module.exports = sendResponsavelInviteEmail

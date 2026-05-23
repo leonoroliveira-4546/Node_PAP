@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const PlanSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
@@ -10,6 +10,6 @@ const PlanSchema = new mongoose.Schema({
   popular: { type: Boolean, default: false },
   active: { type: Boolean, default: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null }
-}, { timestamps: true });
+}, { timestamps: true })
 
-module.exports = mongoose.model('plans', PlanSchema);
+module.exports = mongoose.model('plans', PlanSchema)

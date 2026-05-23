@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const ProductSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -16,6 +16,6 @@ const ProductSchema = new mongoose.Schema({
   status: { type: String, enum: ['pendente', 'aprovado', 'rejeitado'], default: 'pendente' },
   availableForPraticinador: { type: Boolean, default: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null }
-}, { timestamps: true });
+}, { timestamps: true })
 
-module.exports = mongoose.model('products', ProductSchema);
+module.exports = mongoose.model('products', ProductSchema)

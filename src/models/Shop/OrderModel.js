@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const OrderSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
@@ -12,6 +12,6 @@ const OrderSchema = new mongoose.Schema({
   status: { type: String, enum: ['pendente', 'aprovado', 'rejeitado', 'enviado', 'entregue'], default: 'pendente' },
   orderDate: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
-}, { timestamps: true });
+}, { timestamps: true })
 
-module.exports = mongoose.model('orders', OrderSchema);
+module.exports = mongoose.model('orders', OrderSchema)

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const EducationalSchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -14,6 +14,6 @@ const EducationalSchema = new mongoose.Schema({
     points: { type: Number, default: 20 }
   },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null }
-}, { timestamps: true });
+}, { timestamps: true })
 
-module.exports = mongoose.model('educational', EducationalSchema);
+module.exports = mongoose.model('educational', EducationalSchema)

@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require("mongoose")
 
 const PerformanceModel = new mongoose.Schema({
   athlete: {
@@ -26,7 +26,7 @@ const PerformanceModel = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-});
+})
 
-const Performance = mongoose.model("performances", PerformanceModel);
-module.exports = Performance;
+const Performance = mongoose.model("performances", PerformanceModel)
+module.exports = Performance

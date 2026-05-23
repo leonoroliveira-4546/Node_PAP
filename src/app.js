@@ -1,29 +1,29 @@
-require("dotenv").config();
-const express = require('express');
-const http = require('http');
-const path = require("path");
-const mongoose = require("mongoose");
-const cors= require("cors");
-const { initializeSocket } = require('./socket/socketHandler');
+require("dotenv").config()
+const express = require('express')
+const http = require('http')
+const path = require("path")
+const mongoose = require("mongoose")
+const cors= require("cors")
+const { initializeSocket } = require('./socket/socketHandler')
 
-var bodyParser = require("body-parser");
-var mongodb_url = "mongodb+srv://leonormmoliveira:dbUserPassword@pap.wkyhqax.mongodb.net/PAP_db?appName=PAP";
+var bodyParser = require("body-parser")
+var mongodb_url = "mongodb+srv://leonormmoliveira:dbUserPassword@pap.wkyhqax.mongodb.net/PAP_db?appName=PAP"
 
-const app = express();
-const server = http.createServer(app);
+const app = express()
+const server = http.createServer(app)
 
 app.use((req, res, next) => {
   res.setHeader(
     "Cross-Origin-Opener-Policy",
     "same-origin-allow-popups"
-  );
+  )
 
-  next();
-});
+  next()
+})
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')))
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
 
 app.use(
   cors({
@@ -35,40 +35,40 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
   })
-);
+)
 
 //Rotas Públicas
-const AuthRoute = require("./routes/AuthRoute");
-const DojosRoute = require("./routes/DojosRoute");
-const ComunidadeRoute = require("./routes/ComunidadeRoute");
-const ChatRoute = require("./routes/ChatRoute");
-const YoutubeRoute = require("./routes/YoutubeApi/youtube");
-const EducationalRoute = require("./routes/EducationalRoute");
-const AdminRoute = require("./routes/AdminRoute");
-const ShopRoute = require("./routes/ShopRoute");
-const PlansRoute = require("./routes/PlansRoute");
-const PredictionsRoute = require("./routes/PredictionsRoute");
+const AuthRoute = require("./routes/AuthRoute")
+const DojosRoute = require("./routes/DojosRoute")
+const ComunidadeRoute = require("./routes/ComunidadeRoute")
+const ChatRoute = require("./routes/ChatRoute")
+const YoutubeRoute = require("./routes/YoutubeApi/youtube")
+const EducationalRoute = require("./routes/EducationalRoute")
+const AdminRoute = require("./routes/AdminRoute")
+const ShopRoute = require("./routes/ShopRoute")
+const PlansRoute = require("./routes/PlansRoute")
+const PredictionsRoute = require("./routes/PredictionsRoute")
 
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({ extended: false }))
 
-app.use(AuthRoute);
-app.use(DojosRoute);
-app.use(ComunidadeRoute);
-app.use(ChatRoute);
-app.use("/youtube", YoutubeRoute);
-app.use(EducationalRoute);
-app.use(AdminRoute);
-app.use(ShopRoute);
-app.use(PlansRoute);
-app.use(PredictionsRoute);
+app.use(AuthRoute)
+app.use(DojosRoute)
+app.use(ComunidadeRoute)
+app.use(ChatRoute)
+app.use("/youtube", YoutubeRoute)
+app.use(EducationalRoute)
+app.use(AdminRoute)
+app.use(ShopRoute)
+app.use(PlansRoute)
+app.use(PredictionsRoute)
 
 mongoose.connect(mongodb_url)
   .then(result => {
     server.listen(8001, () => {
-      console.log('Servidor rodando na porta 8001...')
+
     })
-    initializeSocket(server);
+    initializeSocket(server)
   })
   .catch(error => {
-    console.log('Erro ao conectar com MongoDB:', error)
+
   })
