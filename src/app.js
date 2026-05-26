@@ -65,7 +65,7 @@ app.use(PredictionsRoute)
 mongoose.connect(mongodb_url)
   .then(result => {
     server.listen(8001, () => {
-
+      console.log('entrando no servidor... 8001.')
     })
     initializeSocket(server)
   })
